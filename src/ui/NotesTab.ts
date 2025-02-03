@@ -1,10 +1,13 @@
 import { ItemView, WorkspaceLeaf, MarkdownView } from "obsidian";
 import HighlightrPlugin from "../plugin/main";
+import * as path from 'path';
 
 export const NOTES_VIEW_TYPE = "highlightr-notes-view";
 
 export class NotesTab extends ItemView {
     plugin: HighlightrPlugin;
+
+    public title = 'Highlights & Notes';
 
     constructor(leaf: WorkspaceLeaf, plugin: HighlightrPlugin) {
         super(leaf);
@@ -16,7 +19,7 @@ export class NotesTab extends ItemView {
     }
 
     getDisplayText(): string {
-        return "Highlights & Notes";
+        return this.title;
     }
 
     getIcon(): string {
@@ -40,6 +43,8 @@ export class NotesTab extends ItemView {
                 return;
             }
 
+            const allHighlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }> = [];
+
             // Process each markdown leaf
             for (const leaf of markdownLeaves) {
                 const view = leaf.view;
@@ -48,13 +53,11 @@ export class NotesTab extends ItemView {
                     const content = await this.app.vault.read(view.file);
                     console.log("File content loaded:", content.length);
 
-                    // Separate regexes for matching
+                    // Updated regex patterns
                     const noteRegex = /data-note="([^"]*)"/;
                     const tagsRegex = /data-tags="([^"]*)"/;
                     const colorRegex = /background(?:-color)?:\s*((?:rgb\([^)]+\)|#[A-Fa-f0-9]+))/;
                     const highlightRegex = /<mark[^>]*>(.*?)<\/mark>/g;
-
-                    const highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[] }> = [];
 
                     let match;
                     while ((match = highlightRegex.exec(content)) !== null) {
@@ -67,9 +70,14 @@ export class NotesTab extends ItemView {
                         const note = noteMatch ? noteMatch[1] : null;
                         console.log("Found note:", note);
 
-                        // Extract tags
+                        // Extract tags with improved handling
                         const tagsMatch = fullMatch.match(tagsRegex);
-                        const tags = tagsMatch ? tagsMatch[1].split(',').map(tag => `#${tag.trim().replace(/\s+/g, '-')}`) : [];
+                        const tags = tagsMatch
+                            ? tagsMatch[1].split(',')
+                                .map(tag => tag.trim())
+                                .filter(tag => tag.length > 0)
+                                .map(tag => `#${tag.replace(/\s+/g, '-')}`)
+                            : [];
                         console.log("Found tags:", tags);
 
                         // Extract color
@@ -77,19 +85,18 @@ export class NotesTab extends ItemView {
                         const color = colorMatch ? colorMatch[1] : null;
                         console.log("Found color:", color);
 
-                        highlights.push({ text, note, color, tags });
+                        allHighlights.push({
+                            text,
+                            note,
+                            color,
+                            tags,
+                            filePath: view.file.path
+                        });
                     }
-
-                    this.displayHighlights(container, highlights);
-                    return; // Process only the first valid markdown file
                 }
             }
 
-            // If no valid markdown file is found
-            container.createEl('div', {
-                cls: 'highlightr-message',
-                text: 'No valid markdown files found'
-            });
+            this.displayHighlights(container, allHighlights);
 
         } catch (error) {
             console.error("Error in updateNotesList:", error);
@@ -98,6 +105,76 @@ export class NotesTab extends ItemView {
                 text: 'Error processing markdown content'
             });
         }
+    }
+
+    private displayHighlights(
+        container: HTMLDivElement,
+        highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>
+    ): void {
+        if (highlights.length === 0) {
+            container.createDiv({
+                cls: 'highlightr-message',
+                text: "No highlights found"
+            });
+            return;
+        }
+
+        const formattedContent = container.createDiv({ cls: "highlightr-formatted-content" });
+
+        // Group highlights by file
+        const highlightsByFile = highlights.reduce((acc, highlight) => {
+            if (!acc[highlight.filePath]) {
+                acc[highlight.filePath] = [];
+            }
+            acc[highlight.filePath].push(highlight);
+            return acc;
+        }, {} as Record<string, typeof highlights>);
+
+        // Display highlights grouped by file
+        Object.entries(highlightsByFile).forEach(([filePath, fileHighlights]) => {
+            const parsedPath = path.parse(filePath);
+            const fileNameWithoutExtension = parsedPath.name;
+            const fileSection = formattedContent.createDiv({ cls: "file-section" });
+            //fileSection.createEl("h3", { text: filePath });
+            fileSection.createEl("h3", { text: "Highlights & Notes" });
+            fileSection.createEl("h4", { text: fileNameWithoutExtension });
+
+            fileHighlights.forEach(({ text, note, color, tags }) => {
+                const highlightEl = fileSection.createDiv({ cls: "highlight-item" });
+
+                // Create highlight text with background color
+                const textEl = highlightEl.createDiv({ cls: "highlight-text" });
+                if (color) {
+                    textEl.style.background = color;
+                }
+                textEl.createSpan({ text: `${text}` });
+
+                // Create note if exists
+                if (note) {
+                    highlightEl.createDiv({
+                        cls: "highlight-note",
+                        text: `📝 ${note}`
+                    });
+                }
+
+                // Create tags if exist
+                if (tags.length > 0) {
+                    const tagsContainer = highlightEl.createDiv({
+                        cls: "highlight-tags"
+                    });
+                    tags.forEach(tag => {
+                        const tagEl = tagsContainer.createSpan({
+                            cls: "highlight-tag",
+                            text: tag
+                        });
+                        // Add click event to filter by tag (optional feature)
+                        tagEl.addEventListener('click', () => {
+                            // Implement tag filtering if desired
+                        });
+                    });
+                }
+            });
+        });
     }
 
     // Enhanced force update method
@@ -148,47 +225,5 @@ export class NotesTab extends ItemView {
                 cls: "highlightr-error-message"
             });
         }
-    }
-
-    // Update display method
-    private displayHighlights(container: HTMLDivElement, highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[] }>): void {
-        if (highlights.length === 0) {
-            container.createDiv({ text: "No highlights found" });
-            return;
-        }
-
-        const formattedContent = container.createDiv({ cls: "highlightr-formatted-content" });
-        formattedContent.createEl("h3", { text: "Highlights & Notes" });
-
-        highlights.forEach(({ text, note, color, tags }) => {
-            const highlightEl = formattedContent.createDiv({ cls: "highlight-item" });
-            const textEl = highlightEl.createDiv({ cls: "highlight-text" });
-
-            if (color) {
-                textEl.style.background = color;
-            }
-
-            textEl.createSpan({ text: `"${text}"` });
-
-            if (note) {
-                highlightEl.createDiv({
-                    cls: "highlight-note",
-                    text: `Note: ${note}`
-                });
-            }
-
-            if (tags.length > 0) {
-                const tagsContainer = highlightEl.createDiv({
-                    cls: "highlight-tags",
-                    text: "Tags: "
-                });
-                tags.forEach(tag => {
-                    tagsContainer.createDiv({
-                        cls: "highlight-tag",
-                        text: tag
-                    });
-                });
-            }
-        });
     }
 }

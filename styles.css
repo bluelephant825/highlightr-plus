@@ -1,3 +1,9 @@
+@font-face {
+  font-family: "nohash";
+  src: url("data:@file/octet-stream;base64,d09GMgABAAAAAAIkAA4AAAAABZAAAAHPAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP0ZGVE0cGhwGYACCQggEEQgKVHILCgABNgIkAxAEIAWDIQcqG6wEERWbgSB+JNg2utZX6ApJGy7CjmE8/P9+3/Y5976LqKbRingWkcbQJk+kQWNNSJiW6F07/AaNtZ5ubikuV4Pq4SjMH/JiUlwodj8k8PDdPL0CSuAzJTJp0ViUlsVpmGI6FmBCvRMpEu1topePILKxjiiC6BICfm17OAW/Lhy9w7cf2yQAcy1VkQgEavyNBzpyOj/gPigav43HLFJXAAQAHL19+KYpW2wp4/24i/kUBAA2ChQUrBVglyKwVrURVRXY0vf4h6X/JYBoBCASCQAIUMhjNuc9RN9LUMFMJGZiNqBiSAK1zunm1dNzutmbny58Otj0IT4Y3oThXW9nVIOxN637tuttSYMxb0pG66x80eI/6fHlQFC/Pn51ZcGufzPnVEtM2c3EWD7FTAmCfIqLQIwJAECNSZshTgEC1UwJEiGwzxBgvpcCQHIJzSLSDDspNpukah7RWeDTfNP8UUSdBQBhrkKabyXFISNUc03TWe/l4WauHyBOGMWsgom7u+w8cJxL32UEX4z1gSNGe+abkhwNgzz184LdiHbKGFSr3kiKCaVzjF7j2nab9PVROmRi8vRBWcdoBISBorrs1BCrMfSJE5v2762mIgr9BgA=");
+  unicode-range: U+23;
+}
+
 /*highlighter style*/
 /*lowlight*/
 .highlightr-lowlight mark,
@@ -805,8 +811,10 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .note-icon {
+  display: inline-block;
   cursor: pointer;
   margin-left: 5px;
+  align-items: baseline;
 }
 
 .note-bubble {
@@ -859,18 +867,20 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .highlight-tags {
-  font-size: 0.9em;
-  display: flex;
-  flex-wrap: wrap;
-  padding-left: 1em;
+  padding-left: 0.5em;
   align-items: baseline;
 }
 
 .highlight-tag {
-  background-color: #00614a;
-  border-radius: 10px;
-  padding: 2px 5px;
-  margin: 2px;
+  font-family: "nohash", var(--font-text);
+  display: inline;
   font-size: 0.85em;
-  color: #e6e6e6;
+  color: #f7f7f7;
+}
+
+.highlight-tags span {
+  margin-right: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background-color: var(--background-modifier-border);
 }

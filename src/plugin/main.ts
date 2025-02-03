@@ -16,6 +16,7 @@ export default class HighlightrPlugin extends Plugin {
     editor: EnhancedEditor;
     manifest: PluginManifest;
     settings: HighlightrSettings;
+    private clickHandlerBound: (e: MouseEvent) => void;
 
     async onload() {
         console.log(`Highlightr v${this.manifest.version} loaded`);
@@ -23,12 +24,30 @@ export default class HighlightrPlugin extends Plugin {
 
         await this.loadSettings();
 
-        this.app.workspace.onLayoutReady(() => {
+        // Register NotesTab view type first
+        this.registerView(
+            NOTES_VIEW_TYPE,
+            (leaf: WorkspaceLeaf) => new NotesTab(leaf, this)
+        );
+
+        this.app.workspace.onLayoutReady(async () => {
+            console.log('Initializing Highlightr plugin...');
+
+            // Initialize plugin features
             this.reloadStyles(this.settings);
             createHighlighterIcons(this.settings, this);
             this.processMarkTags();
             this.attachEventListeners();
-            this.openNotesTab();
+
+            // Open and initialize the notes tab
+            await this.openNotesTab();
+
+            // Force update the NotesTab after a short delay to ensure content is loaded
+            setTimeout(() => {
+                this.triggerNotesTabUpdate();
+            }, 500);
+
+            console.log('Highlightr plugin initialization complete');
         });
 
         this.registerEvent(
@@ -41,6 +60,7 @@ export default class HighlightrPlugin extends Plugin {
                 this.removeExistingBubbles();
                 this.processMarkTags();
                 this.attachEventListeners();
+                this.triggerNotesTabUpdate();
             })
         );
 
@@ -51,10 +71,10 @@ export default class HighlightrPlugin extends Plugin {
             })
         );
 
-        // Register NotesTab view type
-        this.registerView(
-            NOTES_VIEW_TYPE,
-            (leaf: WorkspaceLeaf) => new NotesTab(leaf, this)
+        this.registerEvent(
+            this.app.workspace.on("file-open", () => {
+                this.triggerNotesTabUpdate();
+            })
         );
 
         this.addSettingTab(new HighlightrSettingTab(this.app, this));
@@ -227,6 +247,10 @@ export default class HighlightrPlugin extends Plugin {
 
     onunload() {
         console.log("Highlightr unloaded");
+        // Clean up click listener
+        if (this.clickHandlerBound) {
+            this.app.workspace.containerEl.removeEventListener('click', this.clickHandlerBound);
+        }
     }
 
     handleHighlighterInContextMenu = (
@@ -294,6 +318,25 @@ export default class HighlightrPlugin extends Plugin {
 
     // Attach mouse event listener to each container (editor and reading view)
     attachEventListeners() {
+        const workspaceEl = this.app.workspace.containerEl;
+
+        // Remove existing listener if present
+        if (this.clickHandlerBound) {
+            workspaceEl.removeEventListener('click', this.clickHandlerBound);
+        }
+
+        // Create new bound handler
+        this.clickHandlerBound = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.closest('.highlight-tag')) {
+                e.stopPropagation();
+                e.preventDefault();
+                // Handle tag click logic here
+            }
+        };
+
+        workspaceEl.addEventListener('click', this.clickHandlerBound);
+
         // Handle editing mode
         const editorContainers = document.querySelectorAll('.cm-html-embed');
         editorContainers.forEach((editorContainer) => {
@@ -354,8 +397,8 @@ export default class HighlightrPlugin extends Plugin {
 
             // Single pass replacement with better patterns
             const cleanContent = content.replace(
-                /<mark((?![^>]*data-note)[^>]*|.*?data-note="([^"]*)".*?)>([^<]*)<\/mark>(?:\s*<span class="note-icon">.*?<\/span>)*/g,
-                (match, attrs, note, text) => {
+                /<mark((?![^>]*data-note)[^>]*|.*?data-note="([^"]*)" data-tags="([^"]*)">([^<]*)<\/mark>(?:\s*<span class="note-icon">.*?<\/span>)*)/g,
+                (match, attrs, note, tags) => {
                     // Remove any existing note icons
                     const cleanMatch = match.replace(/<span class="note-icon">.*?<\/span>/g, '');
                     // Only add icon if there's a note
@@ -372,35 +415,99 @@ export default class HighlightrPlugin extends Plugin {
         }
     }
 
+    private processMarkTags(): void {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view?.editor) return;
+
+        let content = view.editor.getValue();
+        if (!content) return;
+
+        // Remove existing note-icon spans
+        content = content.replace(/<span class="note-icon">.*?<\/svg><\/span>/g, '');
+
+        // Remove existing tags
+        content = content.replace(/<span class="highlight-tags">.*?<span class="highlight-tag">[^<]*?<\/span><\/span>/g, '');
+
+        const cursorPos = view.editor.getCursor();
+
+        const updatedContent = content.replace(
+            /<mark[^>]*?style="[^"]*"[^>]*?data-note="([^"]*)"[^>]*?data-tags="([^"]*)"[^>]*?>([^<]*)<\/mark>/g,
+            (match, note, tags, text) => {
+                let result = match;
+                console.log('Match:', match);
+
+                // Process note
+                if (note) {
+                    // Create span element for icon
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'note-icon';
+                    setIcon(iconSpan, 'sticky-note');
+                    const noteIcon = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
+                    result = result + noteIcon;
+                }
+
+                // Process tags
+                if (tags) {
+                    const tagArray = tags.split(',')
+                        .map((tag: string) => tag.trim())
+                        .filter((tag: string) => tag.length > 0)
+                        .map((tag: string) => '#' + tag.replace(/\s+/g, '-'));
+
+                    if (tagArray.length > 0) {
+                        // Insert tags inside the mark tag, before the closing tag
+                        result += `<span class="highlight-tags">`;
+                        tagArray.forEach((tag: string) => {
+                            result += `<span class="highlight-tag">${tag}</span>`;
+                        });
+                        result += `</span>`;
+                    }
+                }
+
+                return result;
+            }
+        );
+
+        if (content !== updatedContent) {
+            view.editor.setValue(updatedContent);
+            // Restore cursor position
+            view.editor.setCursor(cursorPos);
+        }
+    }
+
     private async openNotesTab(): Promise<void> {
         try {
-            // Check if the view is already open
-            const existingLeaves = this.app.workspace.getLeavesOfType(NOTES_VIEW_TYPE);
-            if (existingLeaves.length > 0) {
-                this.app.workspace.revealLeaf(existingLeaves[0]);
-                return;
-            }
+            // Wait for the workspace to be ready
+            this.app.workspace.onLayoutReady(async () => {
+                // Check if the view is already open
+                const existingLeaves = this.app.workspace.getLeavesOfType(NOTES_VIEW_TYPE);
+                if (existingLeaves.length > 0) {
+                    this.app.workspace.revealLeaf(existingLeaves[0]);
+                    return;
+                }
 
-            // Activate right sidebar
-            const rightSidebar = this.app.workspace.getRightLeaf(false);
+                // Try to get the right sidebar
+                let leaf: WorkspaceLeaf;
+                const rightSidebar = this.app.workspace.getRightLeaf(false);
 
-            if (rightSidebar) {
-                await rightSidebar.setViewState({
-                    type: NOTES_VIEW_TYPE,
-                    active: true
-                });
-                this.app.workspace.revealLeaf(rightSidebar);
-            } else {
-                // Fallback: create a new leaf
-                const leaf = this.app.workspace.getLeaf(true);
+                if (rightSidebar) {
+                    leaf = rightSidebar;
+                } else {
+                    // Fallback: create a new leaf
+                    leaf = this.app.workspace.getLeaf(true);
+                }
+
+                // Set the view state
                 await leaf.setViewState({
                     type: NOTES_VIEW_TYPE,
-                    active: true
+                    active: true,
+                    state: {}
                 });
+
+                // Reveal the leaf
                 this.app.workspace.revealLeaf(leaf);
-            }
+            });
         } catch (error) {
-            console.error("Error opening NotesTab:", error);
+            console.error('Error opening notes tab:', error);
         }
     }
 
@@ -415,45 +522,6 @@ export default class HighlightrPlugin extends Plugin {
             });
         } catch (error) {
             console.error("Error triggering NotesTab update:", error);
-        }
-    }
-
-    private processMarkTags(): void {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view?.editor) return;
-
-        const content = view.editor.getValue();
-        if (!content) return;
-
-        const updatedContent = content.replace(
-            /<mark style="background-color: rgb\(\d+,\d+,\d+\);" data-note="([^"]*)" data-tags="([^"]*)">([^<]*)<\/mark>/g,
-            (match, note, tags) => {
-                let result = match;
-
-                // Process note
-                if (note) {
-                    // Create span element for icon
-                    const iconSpan = document.createElement('span');
-                    iconSpan.className = 'note-icon';
-                    setIcon(iconSpan, 'sticky-note');
-                    const noteIcon = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
-
-                    result = match + noteIcon;
-                }
-
-                // Process tags
-                if (tags) {
-                    const tagArray = tags.split(',').map((tag: string) => '#' + tag.trim().replace(/\s+/g, '-'));
-                    const formattedTags = `(${tagArray.join(', ')})`;
-                    result += formattedTags;
-                }
-
-                return result;
-            }
-        );
-
-        if (content !== updatedContent) {
-            view.editor.setValue(updatedContent);
         }
     }
 }
