@@ -72,7 +72,7 @@ export class NotesTab extends ItemView {
 
                         // Extract tags with improved handling
                         const tagsMatch = fullMatch.match(tagsRegex);
-                        const tags = tagsMatch
+                        const tags = Array.isArray(tagsMatch) && typeof tagsMatch[1] === 'string'
                             ? tagsMatch[1].split(',')
                                 .map(tag => tag.trim())
                                 .filter(tag => tag.length > 0)
@@ -117,6 +117,11 @@ export class NotesTab extends ItemView {
                 text: "No highlights found"
             });
             return;
+        }
+
+        const existingFormattedContent = container.querySelector('.highlightr-formatted-content');
+        if (existingFormattedContent) {
+            existingFormattedContent.remove();
         }
 
         const formattedContent = container.createDiv({ cls: "highlightr-formatted-content" });
