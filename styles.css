@@ -834,6 +834,11 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   /* Rounded corners */
 }
 
+.highlightr-formatted-content h3,
+.highlightr-formatted-content h4 {
+  margin-left: 10px;
+}
+
 .highlightr-notes-container {
   order: -1;
   margin-top: 0;
@@ -867,6 +872,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .highlight-tags {
+  margin-top: 4px;
   padding-left: 0.5em;
   align-items: baseline;
 }
@@ -874,13 +880,25 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 .highlight-tag {
   font-family: "nohash", var(--font-text);
   display: inline;
-  font-size: 0.85em;
-  color: #f7f7f7;
+  margin-right: 4px;
+  background-color: var(--tag-background);
+  border: var(--tag-border-width) solid var(--tag-border-color);
+  border-radius: var(--tag-radius);
+  color: var(--tag-color);
+  font-size: 0.875em;
+  font-weight: var(--tag-weight);
+  text-decoration: var(--tag-decoration);
+  line-height: 1;
 }
 
-.highlight-tags span {
-  margin-right: 4px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  background-color: var(--background-modifier-border);
+.markdown-preview-view highlight-tag {
+  padding: none;
+}
+
+.cm-s-obsidian .highlight-tag {
+  padding: var(--tag-padding-y) var(--tag-padding-x);
+}
+
+.highlightr-formatted-content .highlight-tag {
+  padding: var(--tag-padding-y) var(--tag-padding-x);
 }
