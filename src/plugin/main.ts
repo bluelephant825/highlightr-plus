@@ -422,48 +422,47 @@ export default class HighlightrPlugin extends Plugin {
         let content = view.editor.getValue();
         if (!content) return;
 
-        // Remove existing note-icon spans
-        content = content.replace(/<span class="note-icon">.*?<\/svg><\/span>/g, '');
-
-        // Remove existing tags
-        content = content.replace(/<span class="highlight-tags">.*?<span class="highlight-tag">[^<]*?<\/span><\/span>/g, '');
-
         const cursorPos = view.editor.getCursor();
 
-        const updatedContent = content.replace(
-            /<mark[^>]*?style="[^"]*"[^>]*?data-note="([^"]*)"[^>]*?data-tags="([^"]*)"[^>]*?>([^<]*)<\/mark>/g,
-            (match, note, tags, text) => {
-                let result = match;
-                console.log('Match:', match);
+        // Remove any existing note icons and tag markup
+        const cleanContent = content
+            .replace(/<span class="note-icon">.*?<\/span>/g, '')
+            .replace(/<span class="highlight-tags">.*?<span class="highlight-tag">[^<]*?<\/span><\/span>/g, '');
 
-                // Process note
+        const updatedContent = cleanContent.replace(
+            /<mark\b([^>]*)>(.*?)<\/mark>/g,
+            (match, attributes, innerContent) => {
+                const dataTagsMatch = attributes.match(/\bdata-tags="([^"]*)"/);
+                const tags = dataTagsMatch ? dataTagsMatch[1] : [];
+                const dataNoteMatch = attributes.match(/\bdata-note="([^"]*)"/);
+                const note = dataNoteMatch ? dataNoteMatch[1] : "";
+                let additionalContent = "";
+
+                // Process note: append a note icon if not already present.
                 if (note) {
-                    // Create span element for icon
                     const iconSpan = document.createElement('span');
                     iconSpan.className = 'note-icon';
                     setIcon(iconSpan, 'sticky-note');
-                    const noteIcon = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
-                    result = result + noteIcon;
+                    additionalContent += `<span class="note-icon">${iconSpan.innerHTML}</span>`;
                 }
 
-                // Process tags
-                if (tags) {
-                    const tagArray = tags.split(',')
+                // Process tags: build the tag display markup.
+                if (tags.length > 0) {
+                    const tagArray = tags
+                        .split(',')
                         .map((tag: string) => tag.trim())
                         .filter((tag: string) => tag.length > 0)
                         .map((tag: string) => '#' + tag.replace(/\s+/g, '-'));
-
-                    if (tagArray.length > 0) {
-                        // Insert tags inside the mark tag, before the closing tag
-                        result += `<span class="highlight-tags">`;
-                        tagArray.forEach((tag: string) => {
-                            result += `<span class="highlight-tag">${tag}</span>`;
-                        });
-                        result += `</span>`;
-                    }
+                    let tagsMarkup = '<span class="highlight-tags">';
+                    tagArray.forEach((tag: string) => {
+                        tagsMarkup += `<span class="highlight-tag">${tag}</span>`;
+                    });
+                    tagsMarkup += '</span>';
+                    additionalContent += tagsMarkup;
                 }
 
-                return result;
+                // Reassemble the <mark> element with the original attributes, inner content, and modified additional content.
+                return `<mark ${attributes}>${innerContent}</mark>${additionalContent}`;
             }
         );
 
