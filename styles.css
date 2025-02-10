@@ -834,6 +834,11 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   /* Rounded corners */
 }
 
+.highlightr-formatted-content {
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
 .highlightr-formatted-content h3,
 .highlightr-formatted-content h4 {
   margin-left: 10px;
