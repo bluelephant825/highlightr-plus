@@ -1,6 +1,5 @@
 import { ItemView, WorkspaceLeaf, MarkdownView } from "obsidian";
 import HighlightrPlugin from "../plugin/main";
-import * as path from 'path';
 
 export const NOTES_VIEW_TYPE = "highlightr-notes-view";
 
@@ -126,25 +125,23 @@ export class NotesTab extends ItemView {
 
         const formattedContent = container.createDiv({ cls: "highlightr-formatted-content" });
 
-        // Group highlights by file
         const highlightsByFile = highlights.reduce((acc, highlight) => {
             if (!acc[highlight.filePath]) {
                 acc[highlight.filePath] = [];
             }
             acc[highlight.filePath].push(highlight);
             return acc;
-        }, {} as Record<string, typeof highlights>);
+        }, {} as Record<string, Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>>);
 
-        // Display highlights grouped by file
-        Object.entries(highlightsByFile).forEach(([filePath, fileHighlights]) => {
-            const parsedPath = path.parse(filePath);
-            const fileNameWithoutExtension = parsedPath.name;
+        for (const filePath in highlightsByFile) {
+            const fileHighlights = highlightsByFile[filePath];
+            const fileNameWithExtension = filePath.split('/').pop() || filePath;
+            const fileNameWithoutExtension = fileNameWithExtension.replace(/\.[^/.]+$/, "");
             const fileSection = formattedContent.createDiv({ cls: "file-section" });
-            //fileSection.createEl("h3", { text: filePath });
             fileSection.createEl("h3", { text: "Highlights & Notes" });
             fileSection.createEl("h4", { text: fileNameWithoutExtension });
 
-            fileHighlights.forEach(({ text, note, color, tags }) => {
+            fileHighlights.forEach(({ text, note, color, tags }: { text: string; note: string | null; color: string | null; tags: string[]; filePath: string }) => {
                 const highlightEl = fileSection.createDiv({ cls: "highlight-item" });
 
                 // Create highlight text with background color
@@ -167,7 +164,7 @@ export class NotesTab extends ItemView {
                     const tagsContainer = highlightEl.createDiv({
                         cls: "highlight-tags"
                     });
-                    tags.forEach(tag => {
+                    tags.forEach((tag: string) => {
                         const tagEl = tagsContainer.createSpan({
                             cls: "highlight-tag",
                             text: tag
@@ -179,7 +176,7 @@ export class NotesTab extends ItemView {
                     });
                 }
             });
-        });
+        }
     }
 
     // Enhanced force update method

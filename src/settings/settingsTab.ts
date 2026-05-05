@@ -1,4 +1,4 @@
-import type HighlightrPlugin from "src/plugin/main";
+import type HighlightrPlugin from "../plugin/main";
 import {
   App,
   Setting,
@@ -9,7 +9,7 @@ import {
 import Pickr from "@simonwep/pickr";
 import Sortable from "sortablejs";
 import { HIGHLIGHTER_METHODS, HIGHLIGHTER_STYLES } from "./settingsData";
-import { setAttributes } from "src/utils/setAttributes";
+import { setAttributes } from "../utils/setAttributes";
 
 export class HighlightrSettingTab extends PluginSettingTab {
   plugin: HighlightrPlugin;

@@ -1,11 +1,11 @@
 import { Menu, Notice } from "obsidian";
-import { HighlightrSettings } from "src/settings/settingsData";
+import { HighlightrSettings } from "../settings/settingsData";
 import {
   Coords,
   EnhancedApp,
   EnhancedEditor,
   EnhancedMenu,
-} from "src/settings/types";
+} from "../settings/types";
 
 const highlighterMenu = (
   app: EnhancedApp,

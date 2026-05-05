@@ -1,4 +1,4 @@
-import { HighlightrSettings } from "src/settings/settingsData";
+import { HighlightrSettings } from "../settings/settingsData";
 import { setAttributes } from "./setAttributes";
 
 function addNewStyle(selector: any, style: any, sheet: HTMLElement) {

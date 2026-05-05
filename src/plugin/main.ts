@@ -1,14 +1,14 @@
 import { Editor, Menu, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
-import { wait } from "src/utils/util";
-import addIcons from "src/icons/customIcons";
+import { wait } from "../utils/util";
+import addIcons from "../icons/customIcons";
 import { HighlightrSettingTab } from "../settings/settingsTab";
 import { HighlightrSettings } from "../settings/settingsData";
 import DEFAULT_SETTINGS from "../settings/settingsData";
-import contextMenu from "src/plugin/contextMenu";
-import highlighterMenu from "src/ui/highlighterMenu";
-import { createHighlighterIcons } from "src/icons/customIcons";
-import { createStyles } from "src/utils/createStyles";
-import { EnhancedApp, EnhancedEditor } from "src/settings/types";
+import contextMenu from "./contextMenu";
+import highlighterMenu from "../ui/highlighterMenu";
+import { createHighlighterIcons } from "../icons/customIcons";
+import { createStyles } from "../utils/createStyles";
+import { EnhancedApp, EnhancedEditor } from "../settings/types";
 import { NotesTab, NOTES_VIEW_TYPE } from "../ui/NotesTab";
 
 export default class HighlightrPlugin extends Plugin {
