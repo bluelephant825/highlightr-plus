@@ -1,3 +1,9 @@
+@font-face {
+  font-family: "nohash";
+  src: url("data:@file/octet-stream;base64,d09GMgABAAAAAAIkAA4AAAAABZAAAAHPAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP0ZGVE0cGhwGYACCQggEEQgKVHILCgABNgIkAxAEIAWDIQcqG6wEERWbgSB+JNg2utZX6ApJGy7CjmE8/P9+3/Y5976LqKbRingWkcbQJk+kQWNNSJiW6F07/AaNtZ5ubikuV4Pq4SjMH/JiUlwodj8k8PDdPL0CSuAzJTJp0ViUlsVpmGI6FmBCvRMpEu1topePILKxjiiC6BICfm17OAW/Lhy9w7cf2yQAcy1VkQgEavyNBzpyOj/gPigav43HLFJXAAQAHL19+KYpW2wp4/24i/kUBAA2ChQUrBVglyKwVrURVRXY0vf4h6X/JYBoBCASCQAIUMhjNuc9RN9LUMFMJGZiNqBiSAK1zunm1dNzutmbny58Otj0IT4Y3oThXW9nVIOxN637tuttSYMxb0pG66x80eI/6fHlQFC/Pn51ZcGufzPnVEtM2c3EWD7FTAmCfIqLQIwJAECNSZshTgEC1UwJEiGwzxBgvpcCQHIJzSLSDDspNpukah7RWeDTfNP8UUSdBQBhrkKabyXFISNUc03TWe/l4WauHyBOGMWsgom7u+w8cJxL32UEX4z1gSNGe+abkhwNgzz184LdiHbKGFSr3kiKCaVzjF7j2nab9PVROmRi8vRBWcdoBISBorrs1BCrMfSJE5v2762mIgr9BgA=");
+  unicode-range: U+23;
+}
+
 /*highlighter style*/
 /*lowlight*/
 .highlightr-lowlight mark,
@@ -5,31 +11,23 @@
 .highlightr-lowlight .markdown-preview-view mark {
   --lowlight-background: var(--background-primary);
   border-radius: 0;
-  background-image: linear-gradient(
-    360deg,
-    rgba(255, 255, 255, 0) 40%,
-    var(--lowlight-background) 40%
-  ) !important;
+  background-image: linear-gradient(360deg,
+      rgba(255, 255, 255, 0) 40%,
+      var(--lowlight-background) 40%) !important;
 }
 
 .highlightr-lowlight .workspace-split.mod-left-split mark,
 .highlightr-lowlight .workspace-split.mod-left-split span.cm-highlight,
-.highlightr-lowlight
-  .workspace-split.mod-left-split
-  .markdown-preview-view
-  mark,
+.highlightr-lowlight .workspace-split.mod-left-split .markdown-preview-view mark,
 .highlightr-lowlight .workspace-split.mod-right-split mark,
 .highlightr-lowlight .workspace-split.mod-right-split span.cm-highlight,
-.highlightr-lowlight
-  .workspace-split.mod-right-split
-  .markdown-preview-view
-  mark {
+.highlightr-lowlight .workspace-split.mod-right-split .markdown-preview-view mark {
   --lowlight-background: var(--background-secondary);
 }
 
 .highlightr-lowlight .admonition-content mark,
 .highlightr-lowlight .admonition-content span.cm-highlight,
-.highlightr-lowlight .admonition-content > .markdown-preview-view mark {
+.highlightr-lowlight .admonition-content>.markdown-preview-view mark {
   --lowlight-background: var(--background-primary-alt);
 }
 
@@ -40,31 +38,23 @@
   --floating-background: var(--background-primary);
   border-radius: 0;
   padding-bottom: 5px;
-  background-image: linear-gradient(
-    360deg,
-    rgba(255, 255, 255, 0) 28%,
-    var(--floating-background) 28%
-  ) !important;
+  background-image: linear-gradient(360deg,
+      rgba(255, 255, 255, 0) 28%,
+      var(--floating-background) 28%) !important;
 }
 
 .highlightr-floating .workspace-split.mod-left-split mark,
 .highlightr-floating .workspace-split.mod-left-split span.cm-highlight,
-.highlightr-floating
-  .workspace-split.mod-left-split
-  .markdown-preview-view
-  mark,
+.highlightr-floating .workspace-split.mod-left-split .markdown-preview-view mark,
 .highlightr-floating .workspace-split.mod-right-split mark,
 .highlightr-floating .workspace-split.mod-right-split span.cm-highlight,
-.highlightr-floating
-  .workspace-split.mod-right-split
-  .markdown-preview-view
-  mark {
+.highlightr-floating .workspace-split.mod-right-split .markdown-preview-view mark {
   --floating-background: var(--background-secondary);
 }
 
 .highlightr-floating .admonition-content mark,
 .highlightr-floating .admonition-content span.cm-highlight,
-.highlightr-floating .admonition-content > .markdown-preview-view mark {
+.highlightr-floating .admonition-content>.markdown-preview-view mark {
   --floating-background: var(--background-primary-alt);
 }
 
@@ -88,7 +78,7 @@
   font-weight: inherit;
 }
 
-.highlightr-rounded .cm-highlight + span.cm-formatting-highlight {
+.highlightr-rounded .cm-highlight+span.cm-formatting-highlight {
   padding-left: 0em;
   padding-right: 0.15em;
   -webkit-box-decoration-break: clone;
@@ -126,10 +116,7 @@
   box-decoration-break: clone;
 }
 
-.highlightr-realistic
-  .cm-s-obsidian
-  .cm-highlight
-  + span.cm-formatting-highlight {
+.highlightr-realistic .cm-s-obsidian .cm-highlight+span.cm-formatting-highlight {
   margin: 0 -0.05em 0 0;
   padding: 0.15em 0.25em;
   border-radius: 0 0.3em 0.8em 0;
@@ -174,12 +161,15 @@ details[open] summary.highlight-summary::before {
   0% {
     opacity: 0;
   }
+
   20% {
     opacity: 0.9;
   }
+
   40% {
     opacity: 0.95;
   }
+
   100% {
     opacity: 1;
   }
@@ -262,14 +252,12 @@ button.HighlightrSettingsButton svg {
   grid-gap: 6px;
 }
 
-.modal.mod-settings
-  button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonAdd,
+.modal.mod-settings button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonAdd,
 button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonAdd {
   background-color: var(--interactive-accent);
 }
 
-.modal.mod-settings
-  button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonDelete,
+.modal.mod-settings button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonDelete,
 button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonDelete {
   background-color: #989cab;
 }
@@ -340,7 +328,7 @@ HIGHLIGHTR SUPPORT
   color: var(--text-normal);
 }
 
-.pcr-app .pcr-swatches > button {
+.pcr-app .pcr-swatches>button {
   padding: 0;
 }
 
@@ -348,7 +336,7 @@ HIGHLIGHTR SUPPORT
   margin-right: 0;
 }
 
-.themed-color-wrapper > div {
+.themed-color-wrapper>div {
   background: var(--background-primary);
   padding: 10px;
   display: flex;
@@ -356,7 +344,7 @@ HIGHLIGHTR SUPPORT
   border-radius: 4px;
 }
 
-.themed-color-wrapper > div + div {
+.themed-color-wrapper>div+div {
   margin-top: 6px;
 }
 
@@ -364,13 +352,13 @@ HIGHLIGHTR SUPPORT
   display: block;
 }
 
-.themed-color-wrapper .pickr-reset > button {
+.themed-color-wrapper .pickr-reset>button {
   margin: 0 0 0 10px;
   padding: 9px;
   line-height: 1;
 }
 
-.themed-color-wrapper .pickr-reset > button > svg {
+.themed-color-wrapper .pickr-reset>button>svg {
   display: block;
 }
 
@@ -382,12 +370,14 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   overflow: visible;
   transform: translateY(0);
 }
+
 .pickr * {
   box-sizing: border-box;
   outline: none;
   border: none;
   -webkit-appearance: none;
 }
+
 .pickr .pcr-button {
   position: relative;
   height: 2em;
@@ -397,11 +387,11 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
     "Helvetica Neue", Arial, sans-serif;
   border-radius: 0.15em;
-  background: url('data:image/svg+xml;utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" stroke="%2342445A" stroke-width="5px" stroke-linecap="round"><path d="M45,45L5,5"></path><path d="M45,5L5,45"></path></svg>')
-    no-repeat center;
+  background: url('data:image/svg+xml;utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" stroke="%2342445A" stroke-width="5px" stroke-linecap="round"><path d="M45,45L5,5"></path><path d="M45,5L5,45"></path></svg>') no-repeat center;
   background-size: 0;
   transition: all 0.3s;
 }
+
 .pickr .pcr-button::before {
   position: absolute;
   content: "";
@@ -414,9 +404,11 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 0.15em;
   z-index: -1;
 }
+
 .pickr .pcr-button::before {
   z-index: initial;
 }
+
 .pickr .pcr-button::after {
   position: absolute;
   content: "";
@@ -428,18 +420,23 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   background: var(--pcr-color);
   border-radius: 0.15em;
 }
+
 .pickr .pcr-button.clear {
   background-size: 70%;
 }
+
 .pickr .pcr-button.clear::before {
   opacity: 0;
 }
+
 .pickr .pcr-button.clear:focus {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 0 3px var(--pcr-color);
 }
+
 .pickr .pcr-button.disabled {
   cursor: not-allowed;
 }
+
 .pickr *,
 .pcr-app * {
   box-sizing: border-box;
@@ -447,6 +444,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border: none;
   -webkit-appearance: none;
 }
+
 .pickr input:focus,
 .pickr input.pcr-active,
 .pickr button:focus,
@@ -457,18 +455,21 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 .pcr-app button.pcr-active {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 0 3px var(--pcr-color);
 }
+
 .pickr .pcr-palette,
 .pickr .pcr-slider,
 .pcr-app .pcr-palette,
 .pcr-app .pcr-slider {
   transition: box-shadow 0.3s;
 }
+
 .pickr .pcr-palette:focus,
 .pickr .pcr-slider:focus,
 .pcr-app .pcr-palette:focus,
 .pcr-app .pcr-slider:focus {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 0 3px rgba(0, 0, 0, 0.25);
 }
+
 .pcr-app {
   position: fixed;
   display: flex;
@@ -485,19 +486,23 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   left: 0;
   top: 0;
 }
+
 .pcr-app.visible {
   transition: opacity 0.3s;
   visibility: visible;
   opacity: 1;
 }
+
 .pcr-app .pcr-swatches {
   display: flex;
   flex-wrap: wrap;
   margin-top: 0.75em;
 }
+
 .pcr-app .pcr-swatches.pcr-last {
   margin: 0;
 }
+
 @supports (display: grid) {
   .pcr-app .pcr-swatches {
     display: grid;
@@ -505,7 +510,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
     grid-template-columns: repeat(auto-fit, 1.75em);
   }
 }
-.pcr-app .pcr-swatches > button {
+
+.pcr-app .pcr-swatches>button {
   font-size: 1em;
   position: relative;
   width: calc(1.75em - 5px);
@@ -520,7 +526,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   background: transparent;
   z-index: 1;
 }
-.pcr-app .pcr-swatches > button::before {
+
+.pcr-app .pcr-swatches>button::before {
   position: absolute;
   content: "";
   top: 0;
@@ -532,7 +539,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 0.15em;
   z-index: -1;
 }
-.pcr-app .pcr-swatches > button::after {
+
+.pcr-app .pcr-swatches>button::after {
   content: "";
   position: absolute;
   top: 0;
@@ -544,21 +552,26 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 0.15em;
   box-sizing: border-box;
 }
-.pcr-app .pcr-swatches > button:hover {
+
+.pcr-app .pcr-swatches>button:hover {
   filter: brightness(1.05);
 }
-.pcr-app .pcr-swatches > button:not(.pcr-active) {
+
+.pcr-app .pcr-swatches>button:not(.pcr-active) {
   box-shadow: none;
 }
+
 .pcr-app .pcr-interaction {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   margin: 0 -0.2em 0 -0.2em;
 }
-.pcr-app .pcr-interaction > * {
+
+.pcr-app .pcr-interaction>* {
   margin: 0 0.2em;
 }
+
 .pcr-app .pcr-interaction input {
   letter-spacing: 0.07em;
   font-size: 0.75em;
@@ -571,13 +584,16 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   padding: 0.45em 0.5em;
   margin-top: 0.75em;
 }
+
 .pcr-app .pcr-interaction input:hover {
   filter: brightness(0.975);
 }
+
 .pcr-app .pcr-interaction input:focus {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85),
     0 0 0 3px rgba(66, 133, 244, 0.75);
 }
+
 .pcr-app .pcr-interaction .pcr-result {
   color: #75797e;
   text-align: left;
@@ -588,46 +604,56 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   background: #f1f3f4;
   cursor: text;
 }
+
 .pcr-app .pcr-interaction .pcr-result::-moz-selection {
   background: #4285f4;
   color: #fff;
 }
+
 .pcr-app .pcr-interaction .pcr-result::selection {
   background: #4285f4;
   color: #fff;
 }
+
 .pcr-app .pcr-interaction .pcr-type.active {
   color: #fff;
   background: #4285f4;
 }
+
 .pcr-app .pcr-interaction .pcr-save,
 .pcr-app .pcr-interaction .pcr-cancel,
 .pcr-app .pcr-interaction .pcr-clear {
   color: #fff;
   width: auto;
 }
+
 .pcr-app .pcr-interaction .pcr-save,
 .pcr-app .pcr-interaction .pcr-cancel,
 .pcr-app .pcr-interaction .pcr-clear {
   color: #fff;
 }
+
 .pcr-app .pcr-interaction .pcr-save:hover,
 .pcr-app .pcr-interaction .pcr-cancel:hover,
 .pcr-app .pcr-interaction .pcr-clear:hover {
   filter: brightness(0.925);
 }
+
 .pcr-app .pcr-interaction .pcr-save {
   background: #4285f4;
 }
+
 .pcr-app .pcr-interaction .pcr-clear,
 .pcr-app .pcr-interaction .pcr-cancel {
   background: #f44250;
 }
+
 .pcr-app .pcr-interaction .pcr-clear:focus,
 .pcr-app .pcr-interaction .pcr-cancel:focus {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85),
     0 0 0 3px rgba(244, 66, 80, 0.75);
 }
+
 .pcr-app .pcr-selection .pcr-picker {
   position: absolute;
   height: 18px;
@@ -639,6 +665,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   -ms-user-select: none;
   user-select: none;
 }
+
 .pcr-app .pcr-selection .pcr-color-palette,
 .pcr-app .pcr-selection .pcr-color-chooser,
 .pcr-app .pcr-selection .pcr-color-opacity {
@@ -652,23 +679,28 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   cursor: grab;
   cursor: -webkit-grab;
 }
+
 .pcr-app .pcr-selection .pcr-color-palette:active,
 .pcr-app .pcr-selection .pcr-color-chooser:active,
 .pcr-app .pcr-selection .pcr-color-opacity:active {
   cursor: grabbing;
   cursor: -webkit-grabbing;
 }
+
 .pcr-app[data-theme="nano"] {
   width: 14.25em;
   max-width: 95vw;
 }
+
 .pcr-app[data-theme="nano"] .pcr-swatches {
   margin-top: 0.6em;
   padding: 0 0.6em;
 }
+
 .pcr-app[data-theme="nano"] .pcr-interaction {
   padding: 0 0.6em 0.6em 0.6em;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection {
   display: grid;
   grid-gap: 0.6em;
@@ -679,6 +711,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   width: 100%;
   align-self: flex-start;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-preview {
   grid-area: 2 / 1 / 4 / 1;
   height: 100%;
@@ -688,13 +721,12 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   justify-content: center;
   margin-left: 0.6em;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-preview .pcr-last-color {
   display: none;
 }
-.pcr-app[data-theme="nano"]
-  .pcr-selection
-  .pcr-color-preview
-  .pcr-current-color {
+
+.pcr-app[data-theme="nano"] .pcr-selection .pcr-color-preview .pcr-current-color {
   position: relative;
   background: var(--pcr-color);
   width: 2em;
@@ -702,10 +734,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 50em;
   overflow: hidden;
 }
-.pcr-app[data-theme="nano"]
-  .pcr-selection
-  .pcr-color-preview
-  .pcr-current-color::before {
+
+.pcr-app[data-theme="nano"] .pcr-selection .pcr-color-preview .pcr-current-color::before {
   position: absolute;
   content: "";
   top: 0;
@@ -717,21 +747,21 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 0.15em;
   z-index: -1;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-palette {
   grid-area: 1 / 1 / 2 / 3;
   width: 100%;
   height: 100%;
   z-index: 1;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-palette .pcr-palette {
   border-radius: 0.15em;
   width: 100%;
   height: 100%;
 }
-.pcr-app[data-theme="nano"]
-  .pcr-selection
-  .pcr-color-palette
-  .pcr-palette::before {
+
+.pcr-app[data-theme="nano"] .pcr-selection .pcr-color-palette .pcr-palette::before {
   position: absolute;
   content: "";
   top: 0;
@@ -743,32 +773,137 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 0.15em;
   z-index: -1;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-chooser {
   grid-area: 2 / 2 / 2 / 2;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity {
   grid-area: 3 / 2 / 3 / 2;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-chooser,
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity {
   height: 0.5em;
   margin: 0 0.6em;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-chooser .pcr-picker,
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity .pcr-picker {
   top: 50%;
   transform: translateY(-50%);
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-chooser .pcr-slider,
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity .pcr-slider {
   flex-grow: 1;
   border-radius: 50em;
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-chooser .pcr-slider {
   background: linear-gradient(to right, red, #ff0, lime, cyan, blue, #f0f, red);
 }
+
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity .pcr-slider {
   background: linear-gradient(to right, transparent, black),
     url('data:image/svg+xml;utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><path fill="white" d="M1,0H2V1H1V0ZM0,1H1V2H0V1Z"/><path fill="gray" d="M0,0H1V1H0V0ZM1,1H2V2H1V1Z"/></svg>');
   background-size: 100%, 0.25em;
+}
+
+.note-icon {
+  display: inline-block;
+  cursor: pointer;
+  margin-left: 5px;
+  align-items: baseline;
+}
+
+.note-bubble {
+  position: absolute;
+  background-color: #ccc;
+  border: 1px solid #aaa;
+  padding: 5px;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 300px;
+  /* Ensure the width does not exceed 300px */
+  height: auto;
+  /* Automatically adjust height to fit content */
+  overflow-wrap: break-word;
+  /* Ensure long words break to fit within the width */
+  border-radius: 8px;
+  /* Rounded corners */
+}
+
+.highlightr-formatted-content {
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.highlightr-formatted-content h3,
+.highlightr-formatted-content h4 {
+  margin-left: 10px;
+}
+
+.highlightr-notes-container {
+  order: -1;
+  margin-top: 0;
+  padding-top: 1em;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.highlight-item {
+  margin: 10px;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.highlight-text {
+  margin-bottom: 8px;
+  display: inline;
+  /* Ensure highlight fits text */
+  padding: 2px 4px;
+  /* Adjust padding for better fit */
+  border-radius: 3px;
+  /* Optional: round corners */
+}
+
+.highlight-note {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  margin-top: 5px;
+  padding-left: 1em;
+}
+
+.highlight-tags {
+  margin-top: 4px;
+  padding-left: 0.5em;
+  align-items: baseline;
+}
+
+.highlight-tag {
+  font-family: "nohash", var(--font-text);
+  display: inline;
+  margin-right: 4px;
+  background-color: var(--tag-background);
+  border: var(--tag-border-width) solid var(--tag-border-color);
+  border-radius: var(--tag-radius);
+  color: var(--tag-color);
+  font-size: 0.875em;
+  font-weight: var(--tag-weight);
+  text-decoration: var(--tag-decoration);
+  line-height: 1;
+}
+
+.markdown-preview-view highlight-tag {
+  padding: none;
+}
+
+.cm-s-obsidian .highlight-tag {
+  padding: var(--tag-padding-y) var(--tag-padding-x);
+}
+
+.highlightr-formatted-content .highlight-tag {
+  padding: var(--tag-padding-y) var(--tag-padding-x);
 }

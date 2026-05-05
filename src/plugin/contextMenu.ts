@@ -1,8 +1,8 @@
-import type HighlightrPlugin from "src/plugin/main";
+import type HighlightrPlugin from "./main";
 import { Menu } from "obsidian";
-import { HighlightrSettings } from "src/settings/settingsData";
-import highlighterMenu from "src/ui/highlighterMenu";
-import { EnhancedApp, EnhancedEditor } from "src/settings/types";
+import { HighlightrSettings } from "../settings/settingsData";
+import highlighterMenu from "../ui/highlighterMenu";
+import { EnhancedApp, EnhancedEditor } from "../settings/types";
 
 export default function contextMenu(
   app: EnhancedApp,

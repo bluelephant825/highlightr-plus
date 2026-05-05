@@ -28,7 +28,12 @@ const output = [
     external: ["obsidian"],
     plugins: [
       css({ output: "styles.css" }),
-      typescript(),
+      typescript({
+        noForceEmit: true,
+        compilerOptions: {
+          outDir: "./.rollup.tscache"
+        }
+      }),
       nodeResolve({ browser: true }),
       commonjs(),
     ],
@@ -48,7 +53,12 @@ if (process.env.PLUGIN_DEST) {
     external: ["obsidian"],
     plugins: [
       css({ output: "styles.css" }),
-      typescript(),
+      typescript({
+        noForceEmit: true,
+        compilerOptions: {
+          outDir: "./.rollup.tscache"
+        }
+      }),
       nodeResolve({ browser: true }),
       commonjs(),
       copy({
