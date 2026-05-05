@@ -5,6 +5,7 @@ export const NOTES_VIEW_TYPE = "highlightr-notes-view";
 
 export class NotesTab extends ItemView {
     plugin: HighlightrPlugin;
+    private updateRequestId = 0;
 
     public title = 'Highlights & Notes';
 
@@ -26,6 +27,7 @@ export class NotesTab extends ItemView {
     }
 
     private async updateNotesList(container: HTMLDivElement): Promise<void> {
+        const requestId = ++this.updateRequestId;
         try {
             console.log("Starting updateNotesList");
             container.empty();
@@ -46,6 +48,9 @@ export class NotesTab extends ItemView {
 
             // Process each markdown leaf
             for (const leaf of markdownLeaves) {
+                if (requestId !== this.updateRequestId) {
+                    return;
+                }
                 const view = leaf.view;
                 if (view instanceof MarkdownView && view.file) {
                     console.log("Processing file:", view.file.path);
@@ -93,6 +98,10 @@ export class NotesTab extends ItemView {
                         });
                     }
                 }
+            }
+
+            if (requestId !== this.updateRequestId) {
+                return;
             }
 
             this.displayHighlights(container, allHighlights);
