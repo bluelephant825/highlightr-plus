@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import typescript from "@rollup/plugin-typescript";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import css from "rollup-plugin-css-only";
 import copy from "rollup-plugin-copy";
 
 const isProd = process.env.BUILD === "production";
@@ -27,7 +26,6 @@ const output = [
     },
     external: ["obsidian"],
     plugins: [
-      css({ output: "styles.css" }),
       typescript({
         noForceEmit: true,
         compilerOptions: {
@@ -52,7 +50,6 @@ if (process.env.PLUGIN_DEST) {
     },
     external: ["obsidian"],
     plugins: [
-      css({ output: "styles.css" }),
       typescript({
         noForceEmit: true,
         compilerOptions: {
