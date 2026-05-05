@@ -203,7 +203,10 @@ export class NotesTab extends ItemView {
 
     async onOpen(): Promise<void> {
         try {
-            const container = this.containerEl.createDiv({ cls: "highlightr-notes-container" });
+            const existingContainer = this.containerEl.querySelector('.highlightr-notes-container');
+            const container = existingContainer instanceof HTMLDivElement
+                ? existingContainer
+                : this.containerEl.createDiv({ cls: "highlightr-notes-container" });
 
             // Register for workspace events
             this.registerEvent(
