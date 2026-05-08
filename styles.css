@@ -149,6 +149,7 @@ details summary.highlight-summary:before {
   vertical-align: 0.05em;
   background-color: currentColor;
   -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="black" d="M10.707 17.707L16.414 12l-5.707-5.707l-1.414 1.414L13.586 12l-4.293 4.293z"></path></svg>');
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="black" d="M10.707 17.707L16.414 12l-5.707-5.707l-1.414 1.414L13.586 12l-4.293 4.293z"></path></svg>');
 }
 
 details[open] summary.highlight-summary::before {
@@ -216,6 +217,14 @@ details[open] summary.highlight-summary::before {
 
 .menu.highlighterContainer .menu-item:last-of-type {
   border-bottom: none;
+}
+
+.menu .highlightr-color-menu-item .menu-item-icon svg {
+  color: var(--highlightr-color, currentColor);
+}
+
+.menu .highlightr-color-menu-item .menu-item-icon svg path {
+  fill: var(--highlightr-color, currentColor);
 }
 
 /*----------------------------------------------------------------
@@ -806,8 +815,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity .pcr-slider {
   background: linear-gradient(to right, transparent, black),
-    url('data:image/svg+xml;utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><path fill="white" d="M1,0H2V1H1V0ZM0,1H1V2H0V1Z"/><path fill="gray" d="M0,0H1V1H0V0ZM1,1H2V2H1V1Z"/></svg>');
-  background-size: 100%, 0.25em;
+    repeating-linear-gradient(45deg, #fff 0px, #fff 4px, #aaa 4px, #aaa 8px);
+  background-size: 100%, 8px 8px;
 }
 
 .note-icon {
@@ -825,13 +834,9 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   z-index: 1000;
   pointer-events: none;
   max-width: 300px;
-  /* Ensure the width does not exceed 300px */
   height: auto;
-  /* Automatically adjust height to fit content */
   overflow-wrap: break-word;
-  /* Ensure long words break to fit within the width */
   border-radius: 8px;
-  /* Rounded corners */
 }
 
 .highlightr-formatted-content {
@@ -848,7 +853,10 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   order: -1;
   margin-top: 0;
   padding-top: 1em;
-  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.highlightr-empty-state {
+  margin-left: 10px;
 }
 
 .highlight-item {
@@ -896,8 +904,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   line-height: 1;
 }
 
-.markdown-preview-view highlight-tag {
-  padding: none;
+.markdown-preview-view .highlight-tag {
+  padding: 0;
 }
 
 .cm-s-obsidian .highlight-tag {

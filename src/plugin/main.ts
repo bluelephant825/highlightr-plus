@@ -6,7 +6,7 @@ import { HighlightrSettings } from "../settings/settingsData";
 import DEFAULT_SETTINGS from "../settings/settingsData";
 import contextMenu from "./contextMenu";
 import highlighterMenu from "../ui/highlighterMenu";
-import { createHighlighterIcons } from "../icons/customIcons";
+import { createHighlighterIcons, getHighlighterPenIconId } from "../icons/customIcons";
 import { createStyles } from "../utils/createStyles";
 import { EnhancedApp, EnhancedEditor } from "../settings/types";
 import { NotesTab, NOTES_VIEW_TYPE } from "../ui/NotesTab";
@@ -73,6 +73,9 @@ export default class HighlightrPlugin extends Plugin {
 
         this.registerEvent(
             this.app.workspace.on("file-open", () => {
+                if (this.fileHasHighlights()) {
+                    this.openNotesTab();
+                }
                 this.triggerNotesTabUpdate();
             })
         );
@@ -113,9 +116,8 @@ export default class HighlightrPlugin extends Plugin {
     eraseHighlight = (editor: Editor) => {
         const currentStr = editor.getSelection();
         const newStr = currentStr
-            .replace(/\<mark style.*?[^\>]\>/g, "")
-            .replace(/\<mark class.*?[^\>]\>/g, "")
-            .replace(/\<\/mark>/g, "");
+            .replace(/<mark\b[^>]*>/gi, "")
+            .replace(/<\/mark\s*>/gi, "");
         editor.replaceSelection(newStr);
         editor.focus();
     };
@@ -197,7 +199,10 @@ export default class HighlightrPlugin extends Plugin {
             };
 
             Object.keys(commandsMap).forEach((type) => {
-                let highlighterpen = `highlightr-pen-${highlighterKey}`.toLowerCase();
+                let highlighterpen = getHighlighterPenIconId(
+                    highlighterKey,
+                    this.settings.highlighters[highlighterKey]
+                );
                 this.addCommand({
                     id: highlighterKey,
                     name: highlighterKey,
@@ -475,39 +480,46 @@ export default class HighlightrPlugin extends Plugin {
 
     private async openNotesTab(): Promise<void> {
         try {
-            // Wait for the workspace to be ready
-            this.app.workspace.onLayoutReady(async () => {
-                // Check if the view is already open
+            const run = async () => {
                 const existingLeaves = this.app.workspace.getLeavesOfType(NOTES_VIEW_TYPE);
+                let leaf: WorkspaceLeaf | null = null;
+
                 if (existingLeaves.length > 0) {
-                    this.app.workspace.revealLeaf(existingLeaves[0]);
-                    return;
-                }
-
-                // Try to get the right sidebar
-                let leaf: WorkspaceLeaf;
-                const rightSidebar = this.app.workspace.getRightLeaf(false);
-
-                if (rightSidebar) {
-                    leaf = rightSidebar;
+                    leaf = existingLeaves[0];
                 } else {
-                    // Fallback: create a new leaf
-                    leaf = this.app.workspace.getLeaf(true);
+                    const rightSidebar = this.app.workspace.getRightLeaf(false);
+                    leaf = rightSidebar ?? this.app.workspace.getLeaf(true);
+                    await leaf.setViewState({
+                        type: NOTES_VIEW_TYPE,
+                        active: true,
+                        state: {}
+                    });
                 }
 
-                // Set the view state
-                await leaf.setViewState({
-                    type: NOTES_VIEW_TYPE,
-                    active: true,
-                    state: {}
-                });
+                if (leaf) {
+                    this.app.workspace.revealLeaf(leaf);
+                    const rightSplit: any = (this.app.workspace as any).rightSplit;
+                    if (rightSplit && rightSplit.collapsed && typeof rightSplit.expand === "function") {
+                        rightSplit.expand();
+                    }
+                }
+            };
 
-                // Reveal the leaf
-                this.app.workspace.revealLeaf(leaf);
-            });
+            if ((this.app.workspace as any).layoutReady) {
+                await run();
+            } else {
+                this.app.workspace.onLayoutReady(run);
+            }
         } catch (error) {
             console.error('Error opening notes tab:', error);
         }
+    }
+
+    private fileHasHighlights(): boolean {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const content = view?.editor?.getValue();
+        if (!content) return false;
+        return /<mark\b/i.test(content);
     }
 
     private triggerNotesTabUpdate(): void {

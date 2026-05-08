@@ -2,6 +2,36 @@ import { addIcon } from "obsidian";
 import HighlightrPlugin from "../plugin/main";
 import { HighlightrSettings } from "../settings/settingsData";
 
+function normalizeSvgFillStyle(input: string | undefined): string {
+  const color = (input ?? "").trim();
+  const hex = color.startsWith("#") ? color.slice(1) : color;
+
+  if (/^[0-9a-fA-F]{8}$/.test(hex)) {
+    const rgb = hex.slice(0, 6);
+    const alpha = Number.parseInt(hex.slice(6, 8), 16) / 255;
+    return `fill:#${rgb} !important;fill-opacity:${alpha.toFixed(3)} !important;`;
+  }
+
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    return `fill:#${hex} !important;fill-opacity:1 !important;`;
+  }
+
+  if (color.length > 0) {
+    return `fill:${color} !important;fill-opacity:1 !important;`;
+  }
+
+  return `fill:transparent !important;fill-opacity:1 !important;`;
+}
+
+function getColorSignature(input: string | undefined): string {
+  const normalized = (input ?? "transparent").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalized.length > 0 ? normalized : "transparent";
+}
+
+export function getHighlighterPenIconId(highlighter: string, color: string | undefined): string {
+  return `highlightr-pen-${highlighter}-${getColorSignature(color)}`.toLowerCase();
+}
+
 const icons: Record<string, string> = {
   "highlightr-eraser": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 15.408l4.299 4.299a.996.996 0 0 0 .707.293h12.001v-2h-6.958l7.222-7.222c.78-.779.78-2.049 0-2.828L14.906 3a2.003 2.003 0 0 0-2.828 0l-4.75 4.749l-4.754 4.843a2.007 2.007 0 0 0 .012 2.816zM13.492 4.414l4.95 4.95l-2.586 2.586L10.906 7l2.586-2.586zM8.749 9.156l.743-.742l4.95 4.95l-4.557 4.557a1.026 1.026 0 0 0-.069.079h-1.81l-4.005-4.007l4.748-4.837z" fill="currentColor"/></svg>`,
   "highlightr-pen": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z" fill="currentColor"/></svg>`,
@@ -16,12 +46,19 @@ export function createHighlighterIcons(
   plugin: HighlightrPlugin
 ) {
   const highlighterIcons: Record<string, string> = {};
+  const orderedHighlighters =
+    plugin.settings.highlighterOrder.length > 0
+      ? plugin.settings.highlighterOrder
+      : Object.keys(settings.highlighters);
 
-  for (const key of plugin.settings.highlighterOrder) {
-    let highlighterpen = `highlightr-pen-${key}`.toLowerCase();
+  for (const key of orderedHighlighters) {
+    const colorValue = settings.highlighters[key];
+    const fillStyle = normalizeSvgFillStyle(colorValue);
+    const highlighterPen = getHighlighterPenIconId(key, colorValue);
+
     highlighterIcons[
-      highlighterpen
-    ] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z" fill="${settings.highlighters[key]}"/></svg>`;
+      highlighterPen
+    ] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z" style="${fillStyle}"/></svg>`;
   }
 
   Object.keys(highlighterIcons).forEach((key) => {

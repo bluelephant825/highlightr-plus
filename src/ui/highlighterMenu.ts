@@ -18,18 +18,21 @@ const highlighterMenu = (
 
     const menu = new Menu() as unknown as EnhancedMenu;
 
-    // menu.setUseNativeMenu(false);
+    menu.setUseNativeMenu(false);
 
     const menuDom = menu.dom;
     menuDom.addClass("highlighterContainer");
 
     settings.highlighterOrder.forEach((highlighter) => {
       menu.addItem((highlighterItem) => {
-        highlighterItem.setTitle(highlighter);
-        highlighterItem.setIcon(`highlightr-pen-${highlighter}`.toLowerCase());
+        const color = settings.highlighters[highlighter];
+        highlighterItem.setTitle(highlighter).setIcon("highlighter");
         highlighterItem.onClick(() => {
           app.commands.executeCommandById(`highlightr-plugin:${highlighter}`);
         });
+        const itemDom = (highlighterItem as any).dom as HTMLElement;
+        itemDom.addClass("highlightr-color-menu-item");
+        itemDom.style.setProperty("--highlightr-color", color && color.trim().length > 0 ? color : "transparent");
       });
     });
 

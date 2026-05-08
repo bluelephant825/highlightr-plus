@@ -32,6 +32,9 @@ export class NotesTab extends ItemView {
             console.log("Starting updateNotesList");
             container.empty();
 
+            const activeMarkdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            const activeFilePath = activeMarkdownView?.file?.path;
+
             // Get all markdown leaves
             const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
             console.log("Markdown leaves found:", markdownLeaves.length);
@@ -54,7 +57,7 @@ export class NotesTab extends ItemView {
                 const view = leaf.view;
                 if (view instanceof MarkdownView && view.file) {
                     console.log("Processing file:", view.file.path);
-                    const content = await this.app.vault.read(view.file);
+                    const content = view.editor?.getValue() ?? await this.app.vault.read(view.file);
                     console.log("File content loaded:", content.length);
 
                     // Updated regex patterns
@@ -104,7 +107,7 @@ export class NotesTab extends ItemView {
                 return;
             }
 
-            this.displayHighlights(container, allHighlights);
+            this.displayHighlights(container, allHighlights, activeFilePath);
 
         } catch (error) {
             console.error("Error in updateNotesList:", error);
@@ -117,16 +120,9 @@ export class NotesTab extends ItemView {
 
     private displayHighlights(
         container: HTMLDivElement,
-        highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>
+        highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>,
+        activeFilePath?: string
     ): void {
-        if (highlights.length === 0) {
-            container.createDiv({
-                cls: 'highlightr-message',
-                text: "No highlights found"
-            });
-            return;
-        }
-
         const existingFormattedContent = container.querySelector('.highlightr-formatted-content');
         if (existingFormattedContent) {
             existingFormattedContent.remove();
@@ -134,58 +130,65 @@ export class NotesTab extends ItemView {
 
         const formattedContent = container.createDiv({ cls: "highlightr-formatted-content" });
 
-        const highlightsByFile = highlights.reduce((acc, highlight) => {
-            if (!acc[highlight.filePath]) {
-                acc[highlight.filePath] = [];
-            }
-            acc[highlight.filePath].push(highlight);
-            return acc;
-        }, {} as Record<string, Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>>);
-
-        for (const filePath in highlightsByFile) {
-            const fileHighlights = highlightsByFile[filePath];
-            const fileNameWithExtension = filePath.split('/').pop() || filePath;
-            const fileNameWithoutExtension = fileNameWithExtension.replace(/\.[^/.]+$/, "");
-            const fileSection = formattedContent.createDiv({ cls: "file-section" });
-            fileSection.createEl("h3", { text: "Highlights & Notes" });
-            fileSection.createEl("h4", { text: fileNameWithoutExtension });
-
-            fileHighlights.forEach(({ text, note, color, tags }: { text: string; note: string | null; color: string | null; tags: string[]; filePath: string }) => {
-                const highlightEl = fileSection.createDiv({ cls: "highlight-item" });
-
-                // Create highlight text with background color
-                const textEl = highlightEl.createDiv({ cls: "highlight-text" });
-                if (color) {
-                    textEl.style.background = color;
-                }
-                textEl.createSpan({ text: `${text}` });
-
-                // Create note if exists
-                if (note) {
-                    highlightEl.createDiv({
-                        cls: "highlight-note",
-                        text: `📝 ${note}`
-                    });
-                }
-
-                // Create tags if exist
-                if (tags.length > 0) {
-                    const tagsContainer = highlightEl.createDiv({
-                        cls: "highlight-tags"
-                    });
-                    tags.forEach((tag: string) => {
-                        const tagEl = tagsContainer.createSpan({
-                            cls: "highlight-tag",
-                            text: tag
-                        });
-                        // Add click event to filter by tag (optional feature)
-                        tagEl.addEventListener('click', () => {
-                            // Implement tag filtering if desired
-                        });
-                    });
-                }
+        const sectionFilePath = activeFilePath ?? highlights[0]?.filePath;
+        if (!sectionFilePath) {
+            container.createDiv({
+                cls: 'highlightr-message highlightr-empty-state',
+                text: "No highlights found"
             });
+            return;
         }
+
+        const fileNameWithExtension = sectionFilePath.split('/').pop() || sectionFilePath;
+        const fileNameWithoutExtension = fileNameWithExtension.replace(/\.[^/.]+$/, "");
+        const fileSection = formattedContent.createDiv({ cls: "file-section" });
+        fileSection.createEl("h3", { text: "Highlights & Notes" });
+        fileSection.createEl("h4", { text: fileNameWithoutExtension });
+
+        const fileHighlights = highlights.filter(highlight => highlight.filePath === sectionFilePath);
+        if (fileHighlights.length === 0) {
+            fileSection.createDiv({
+                cls: 'highlightr-message highlightr-empty-state',
+                text: "No highlights found"
+            });
+            return;
+        }
+
+        fileHighlights.forEach(({ text, note, color, tags }: { text: string; note: string | null; color: string | null; tags: string[]; filePath: string }) => {
+            const highlightEl = fileSection.createDiv({ cls: "highlight-item" });
+
+            // Create highlight text with background color
+            const textEl = highlightEl.createDiv({ cls: "highlight-text" });
+            if (color) {
+                textEl.style.background = color;
+            }
+            textEl.createSpan({ text: `${text}` });
+
+            // Create note if exists
+            if (note) {
+                highlightEl.createDiv({
+                    cls: "highlight-note",
+                    text: `📝 ${note}`
+                });
+            }
+
+            // Create tags if exist
+            if (tags.length > 0) {
+                const tagsContainer = highlightEl.createDiv({
+                    cls: "highlight-tags"
+                });
+                tags.forEach((tag: string) => {
+                    const tagEl = tagsContainer.createSpan({
+                        cls: "highlight-tag",
+                        text: tag
+                    });
+                    // Add click event to filter by tag (optional feature)
+                    tagEl.addEventListener('click', () => {
+                        // Implement tag filtering if desired
+                    });
+                });
+            }
+        });
     }
 
     // Enhanced force update method
