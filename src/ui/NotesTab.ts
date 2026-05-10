@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, setIcon } from "obsidian";
 import HighlightrPlugin from "../plugin/main";
 
 export const NOTES_VIEW_TYPE = "highlightr-notes-view";
@@ -199,7 +199,8 @@ export class NotesTab extends ItemView {
                 const noteEl = highlightEl.createDiv({
                     cls: "highlight-note"
                 });
-                noteEl.appendChild(document.createTextNode("📝 "));
+                const noteIconEl = noteEl.createSpan({ cls: "note-icon" });
+                setIcon(noteIconEl, "sticky-note");
                 this.renderHighlightText(noteEl, note);
             }
 

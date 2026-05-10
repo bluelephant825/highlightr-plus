@@ -11,23 +11,31 @@
 .highlightr-lowlight .markdown-preview-view mark {
   --lowlight-background: var(--background-primary);
   border-radius: 0;
-  background-image: linear-gradient(360deg,
-      rgba(255, 255, 255, 0) 40%,
-      var(--lowlight-background) 40%) !important;
+  background-image: linear-gradient(
+    360deg,
+    rgba(255, 255, 255, 0) 40%,
+    var(--lowlight-background) 40%
+  ) !important;
 }
 
 .highlightr-lowlight .workspace-split.mod-left-split mark,
 .highlightr-lowlight .workspace-split.mod-left-split span.cm-highlight,
-.highlightr-lowlight .workspace-split.mod-left-split .markdown-preview-view mark,
+.highlightr-lowlight
+  .workspace-split.mod-left-split
+  .markdown-preview-view
+  mark,
 .highlightr-lowlight .workspace-split.mod-right-split mark,
 .highlightr-lowlight .workspace-split.mod-right-split span.cm-highlight,
-.highlightr-lowlight .workspace-split.mod-right-split .markdown-preview-view mark {
+.highlightr-lowlight
+  .workspace-split.mod-right-split
+  .markdown-preview-view
+  mark {
   --lowlight-background: var(--background-secondary);
 }
 
 .highlightr-lowlight .admonition-content mark,
 .highlightr-lowlight .admonition-content span.cm-highlight,
-.highlightr-lowlight .admonition-content>.markdown-preview-view mark {
+.highlightr-lowlight .admonition-content > .markdown-preview-view mark {
   --lowlight-background: var(--background-primary-alt);
 }
 
@@ -38,23 +46,31 @@
   --floating-background: var(--background-primary);
   border-radius: 0;
   padding-bottom: 5px;
-  background-image: linear-gradient(360deg,
-      rgba(255, 255, 255, 0) 28%,
-      var(--floating-background) 28%) !important;
+  background-image: linear-gradient(
+    360deg,
+    rgba(255, 255, 255, 0) 28%,
+    var(--floating-background) 28%
+  ) !important;
 }
 
 .highlightr-floating .workspace-split.mod-left-split mark,
 .highlightr-floating .workspace-split.mod-left-split span.cm-highlight,
-.highlightr-floating .workspace-split.mod-left-split .markdown-preview-view mark,
+.highlightr-floating
+  .workspace-split.mod-left-split
+  .markdown-preview-view
+  mark,
 .highlightr-floating .workspace-split.mod-right-split mark,
 .highlightr-floating .workspace-split.mod-right-split span.cm-highlight,
-.highlightr-floating .workspace-split.mod-right-split .markdown-preview-view mark {
+.highlightr-floating
+  .workspace-split.mod-right-split
+  .markdown-preview-view
+  mark {
   --floating-background: var(--background-secondary);
 }
 
 .highlightr-floating .admonition-content mark,
 .highlightr-floating .admonition-content span.cm-highlight,
-.highlightr-floating .admonition-content>.markdown-preview-view mark {
+.highlightr-floating .admonition-content > .markdown-preview-view mark {
   --floating-background: var(--background-primary-alt);
 }
 
@@ -78,7 +94,7 @@
   font-weight: inherit;
 }
 
-.highlightr-rounded .cm-highlight+span.cm-formatting-highlight {
+.highlightr-rounded .cm-highlight + span.cm-formatting-highlight {
   padding-left: 0em;
   padding-right: 0.15em;
   -webkit-box-decoration-break: clone;
@@ -116,7 +132,10 @@
   box-decoration-break: clone;
 }
 
-.highlightr-realistic .cm-s-obsidian .cm-highlight+span.cm-formatting-highlight {
+.highlightr-realistic
+  .cm-s-obsidian
+  .cm-highlight
+  + span.cm-formatting-highlight {
   margin: 0 -0.05em 0 0;
   padding: 0.15em 0.25em;
   border-radius: 0 0.3em 0.8em 0;
@@ -261,13 +280,23 @@ button.HighlightrSettingsButton svg {
   grid-gap: 6px;
 }
 
-.modal.mod-settings button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonAdd,
-button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonAdd {
+.modal.mod-settings
+  button:not(.mod-cta):not(
+    .mod-warning
+  ).HighlightrSettingsButton.HighlightrSettingsButtonAdd,
+button:not(.mod-cta):not(
+    .mod-warning
+  ).HighlightrSettingsButton.HighlightrSettingsButtonAdd {
   background-color: var(--interactive-accent);
 }
 
-.modal.mod-settings button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonDelete,
-button:not(.mod-cta):not(.mod-warning).HighlightrSettingsButton.HighlightrSettingsButtonDelete {
+.modal.mod-settings
+  button:not(.mod-cta):not(
+    .mod-warning
+  ).HighlightrSettingsButton.HighlightrSettingsButtonDelete,
+button:not(.mod-cta):not(
+    .mod-warning
+  ).HighlightrSettingsButton.HighlightrSettingsButtonDelete {
   background-color: #989cab;
 }
 
@@ -337,7 +366,7 @@ HIGHLIGHTR SUPPORT
   color: var(--text-normal);
 }
 
-.pcr-app .pcr-swatches>button {
+.pcr-app .pcr-swatches > button {
   padding: 0;
 }
 
@@ -345,7 +374,7 @@ HIGHLIGHTR SUPPORT
   margin-right: 0;
 }
 
-.themed-color-wrapper>div {
+.themed-color-wrapper > div {
   background: var(--background-primary);
   padding: 10px;
   display: flex;
@@ -353,7 +382,7 @@ HIGHLIGHTR SUPPORT
   border-radius: 4px;
 }
 
-.themed-color-wrapper>div+div {
+.themed-color-wrapper > div + div {
   margin-top: 6px;
 }
 
@@ -361,13 +390,13 @@ HIGHLIGHTR SUPPORT
   display: block;
 }
 
-.themed-color-wrapper .pickr-reset>button {
+.themed-color-wrapper .pickr-reset > button {
   margin: 0 0 0 10px;
   padding: 9px;
   line-height: 1;
 }
 
-.themed-color-wrapper .pickr-reset>button>svg {
+.themed-color-wrapper .pickr-reset > button > svg {
   display: block;
 }
 
@@ -393,10 +422,12 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   width: 2em;
   padding: 0.5em;
   cursor: pointer;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue",
+    Arial, sans-serif;
   border-radius: 0.15em;
-  background: url('data:image/svg+xml;utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" stroke="%2342445A" stroke-width="5px" stroke-linecap="round"><path d="M45,45L5,5"></path><path d="M45,5L5,45"></path></svg>') no-repeat center;
+  background: url('data:image/svg+xml;utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" stroke="%2342445A" stroke-width="5px" stroke-linecap="round"><path d="M45,45L5,5"></path><path d="M45,5L5,45"></path></svg>')
+    no-repeat center;
   background-size: 0;
   transition: all 0.3s;
 }
@@ -439,7 +470,9 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .pickr .pcr-button.clear:focus {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 0 3px var(--pcr-color);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 0 0 3px var(--pcr-color);
 }
 
 .pickr .pcr-button.disabled {
@@ -462,7 +495,9 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 .pcr-app input.pcr-active,
 .pcr-app button:focus,
 .pcr-app button.pcr-active {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 0 3px var(--pcr-color);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 0 0 3px var(--pcr-color);
 }
 
 .pickr .pcr-palette,
@@ -476,7 +511,9 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 .pickr .pcr-slider:focus,
 .pcr-app .pcr-palette:focus,
 .pcr-app .pcr-slider:focus {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 0 3px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 0 0 3px rgba(0, 0, 0, 0.25);
 }
 
 .pcr-app {
@@ -488,10 +525,15 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   background: #fff;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s, visibility 0s 0.3s;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Helvetica Neue", Arial, sans-serif;
-  box-shadow: 0 0.15em 1.5em 0 rgba(0, 0, 0, 0.1), 0 0 1em 0 rgba(0, 0, 0, 0.03);
+  transition:
+    opacity 0.3s,
+    visibility 0s 0.3s;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue",
+    Arial, sans-serif;
+  box-shadow:
+    0 0.15em 1.5em 0 rgba(0, 0, 0, 0.1),
+    0 0 1em 0 rgba(0, 0, 0, 0.03);
   left: 0;
   top: 0;
 }
@@ -520,7 +562,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   }
 }
 
-.pcr-app .pcr-swatches>button {
+.pcr-app .pcr-swatches > button {
   font-size: 1em;
   position: relative;
   width: calc(1.75em - 5px);
@@ -536,7 +578,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   z-index: 1;
 }
 
-.pcr-app .pcr-swatches>button::before {
+.pcr-app .pcr-swatches > button::before {
   position: absolute;
   content: "";
   top: 0;
@@ -549,7 +591,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   z-index: -1;
 }
 
-.pcr-app .pcr-swatches>button::after {
+.pcr-app .pcr-swatches > button::after {
   content: "";
   position: absolute;
   top: 0;
@@ -562,11 +604,11 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   box-sizing: border-box;
 }
 
-.pcr-app .pcr-swatches>button:hover {
+.pcr-app .pcr-swatches > button:hover {
   filter: brightness(1.05);
 }
 
-.pcr-app .pcr-swatches>button:not(.pcr-active) {
+.pcr-app .pcr-swatches > button:not(.pcr-active) {
   box-shadow: none;
 }
 
@@ -577,7 +619,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   margin: 0 -0.2em 0 -0.2em;
 }
 
-.pcr-app .pcr-interaction>* {
+.pcr-app .pcr-interaction > * {
   margin: 0 0.2em;
 }
 
@@ -599,7 +641,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .pcr-app .pcr-interaction input:focus {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85),
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
     0 0 0 3px rgba(66, 133, 244, 0.75);
 }
 
@@ -659,7 +702,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 
 .pcr-app .pcr-interaction .pcr-clear:focus,
 .pcr-app .pcr-interaction .pcr-cancel:focus {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85),
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.85),
     0 0 0 3px rgba(244, 66, 80, 0.75);
 }
 
@@ -735,7 +779,10 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   display: none;
 }
 
-.pcr-app[data-theme="nano"] .pcr-selection .pcr-color-preview .pcr-current-color {
+.pcr-app[data-theme="nano"]
+  .pcr-selection
+  .pcr-color-preview
+  .pcr-current-color {
   position: relative;
   background: var(--pcr-color);
   width: 2em;
@@ -744,7 +791,10 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   overflow: hidden;
 }
 
-.pcr-app[data-theme="nano"] .pcr-selection .pcr-color-preview .pcr-current-color::before {
+.pcr-app[data-theme="nano"]
+  .pcr-selection
+  .pcr-color-preview
+  .pcr-current-color::before {
   position: absolute;
   content: "";
   top: 0;
@@ -770,7 +820,10 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   height: 100%;
 }
 
-.pcr-app[data-theme="nano"] .pcr-selection .pcr-color-palette .pcr-palette::before {
+.pcr-app[data-theme="nano"]
+  .pcr-selection
+  .pcr-color-palette
+  .pcr-palette::before {
   position: absolute;
   content: "";
   top: 0;
@@ -814,15 +867,18 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity .pcr-slider {
-  background: linear-gradient(to right, transparent, black),
+  background:
+    linear-gradient(to right, transparent, black),
     repeating-linear-gradient(45deg, #fff 0px, #fff 4px, #aaa 4px, #aaa 8px);
-  background-size: 100%, 8px 8px;
+  background-size:
+    100%,
+    8px 8px;
 }
 
 .note-icon {
   display: inline-block;
   cursor: pointer;
-  margin-left: 5px;
+  margin-left: 2px;
   align-items: baseline;
 }
 
@@ -870,11 +926,8 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 .highlight-text {
   margin-bottom: 8px;
   display: inline;
-  /* Ensure highlight fits text */
   padding: 2px 4px;
-  /* Adjust padding for better fit */
   border-radius: 3px;
-  /* Optional: round corners */
 }
 
 .highlight-note {
@@ -882,6 +935,10 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   color: var(--text-muted);
   margin-top: 5px;
   padding-left: 1em;
+}
+
+.highlight-note .note-icon {
+  margin-right: 4px;
 }
 
 .highlight-tags {
