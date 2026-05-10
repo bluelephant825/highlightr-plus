@@ -118,6 +118,36 @@ export class NotesTab extends ItemView {
         }
     }
 
+    private renderHighlightText(container: HTMLElement, text: string): void {
+        const template = document.createElement('template');
+        template.innerHTML = text;
+
+        const appendSanitized = (node: Node, target: HTMLElement): void => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                target.appendChild(document.createTextNode(node.textContent ?? ''));
+                return;
+            }
+
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return;
+            }
+
+            const element = node as HTMLElement;
+            const tagName = element.tagName.toLowerCase();
+
+            if (tagName === 'sub' || tagName === 'sup') {
+                const safeElement = document.createElement(tagName);
+                Array.from(element.childNodes).forEach((child) => appendSanitized(child, safeElement));
+                target.appendChild(safeElement);
+                return;
+            }
+
+            Array.from(element.childNodes).forEach((child) => appendSanitized(child, target));
+        };
+
+        Array.from(template.content.childNodes).forEach((node) => appendSanitized(node, container));
+    }
+
     private displayHighlights(
         container: HTMLDivElement,
         highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>,
@@ -162,14 +192,15 @@ export class NotesTab extends ItemView {
             if (color) {
                 textEl.style.background = color;
             }
-            textEl.createSpan({ text: `${text}` });
+            this.renderHighlightText(textEl, text);
 
             // Create note if exists
             if (note) {
-                highlightEl.createDiv({
-                    cls: "highlight-note",
-                    text: `📝 ${note}`
+                const noteEl = highlightEl.createDiv({
+                    cls: "highlight-note"
                 });
+                noteEl.appendChild(document.createTextNode("📝 "));
+                this.renderHighlightText(noteEl, note);
             }
 
             // Create tags if exist
