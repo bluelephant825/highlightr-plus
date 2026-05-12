@@ -1,16 +1,44 @@
-import { Editor, Menu, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
+import { Editor, Menu, Notice, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
 import { wait } from "../utils/util";
 import { debounce } from "../utils/debounce";
 import addIcons from "../icons/customIcons";
 import { HighlightrSettingTab } from "../settings/settingsTab";
-import { HighlightrSettings } from "../settings/settingsData";
+import { HighlightrSettings, createDefaultHighlighterClass } from "../settings/settingsData";
 import DEFAULT_SETTINGS from "../settings/settingsData";
 import contextMenu from "./contextMenu";
-import highlighterMenu from "../ui/highlighterMenu";
 import { createHighlighterIcons, getHighlighterPenIconId } from "../icons/customIcons";
 import { createStyles } from "../utils/createStyles";
 import { EnhancedApp, EnhancedEditor } from "../settings/types";
 import { NotesTab, NOTES_VIEW_TYPE } from "../ui/NotesTab";
+
+const showHighlightrMenuFromCommand = (plugin: HighlightrPlugin, editor: EnhancedEditor): void => {
+    if (!editor || !editor.hasFocus()) {
+        new Notice("Focus must be in editor");
+        return;
+    }
+
+    const menu = new Menu();
+    contextMenu(plugin.app, menu, editor, plugin, plugin.settings);
+
+    const cursor = editor.getCursor("from");
+    let coords: { right: number; top: number } | null = null;
+
+    if (editor.cursorCoords) {
+        coords = editor.cursorCoords(true, "window");
+    } else if (editor.coordsAtPos) {
+        const offset = editor.posToOffset(cursor);
+        coords = editor.cm.coordsAtPos?.(offset) ?? editor.coordsAtPos(offset);
+    }
+
+    if (!coords) {
+        return;
+    }
+
+    menu.showAtPosition({
+        x: coords.right + 25,
+        y: coords.top + 20,
+    });
+};
 
 export default class HighlightrPlugin extends Plugin {
     app: EnhancedApp;
@@ -93,9 +121,7 @@ export default class HighlightrPlugin extends Plugin {
             name: "Open Highlightr",
             icon: "highlightr-pen",
             editorCallback: (editor: EnhancedEditor) => {
-                !document.querySelector(".menu.highlighterContainer")
-                    ? highlighterMenu(this.app, this.settings, editor)
-                    : true;
+                showHighlightrMenuFromCommand(this, editor);
             },
         });
 
@@ -198,7 +224,7 @@ export default class HighlightrPlugin extends Plugin {
                     line: 0,
                     prefix:
                         this.settings.highlighterMethods === "css-classes"
-                            ? `<mark class="hltr-${highlighterKey.toLowerCase()}">`
+                            ? `<mark class="hltr-${(this.settings.highlighterClasses?.[highlighterKey] ?? createDefaultHighlighterClass(highlighterKey)).toLowerCase()}">`
                             : `<mark style="background: ${this.settings.highlighters[highlighterKey]};">`,
                     suffix: "</mark>",
                 },
@@ -273,6 +299,13 @@ export default class HighlightrPlugin extends Plugin {
 
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings.highlighterClasses = this.settings.highlighterClasses || {};
+        this.settings.highlighterOrder.forEach((highlighter) => {
+            const existingClass = this.settings.highlighterClasses[highlighter];
+            if (!existingClass || !existingClass.trim()) {
+                this.settings.highlighterClasses[highlighter] = createDefaultHighlighterClass(highlighter);
+            }
+        });
     }
 
     async saveSettings() {

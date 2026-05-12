@@ -272,6 +272,14 @@ button.HighlightrSettingsButton svg {
   display: block;
 }
 
+.setting-item-info {
+  margin-left: 15px;
+}
+
+.setting-item-control {
+  padding-right: 15px;
+}
+
 .highlighterplugin-setting-item .setting-item-control {
   justify-content: space-between;
   margin-top: 12px;
@@ -305,6 +313,7 @@ button:not(.mod-cta):not(
   display: flex;
   height: 24px;
   width: 24px;
+  margin-left: 12px;
 }
 
 .highlighter-item-draggable {
@@ -935,10 +944,31 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   color: var(--text-muted);
   margin-top: 5px;
   padding-left: 1em;
+  display: flex;
+  align-items: flex-start;
 }
 
 .highlight-note .note-icon {
   margin-right: 4px;
+  margin-top: 2px;
+}
+
+.highlight-note-content {
+  flex: 1;
+}
+
+.highlight-note-content ul,
+.highlight-note-content ol {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.highlight-note-content li + li {
+  margin-top: 2px;
+}
+
+.highlight-note-content div + div {
+  margin-top: 2px;
 }
 
 .highlight-tags {

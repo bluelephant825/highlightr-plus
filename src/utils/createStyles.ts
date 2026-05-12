@@ -1,4 +1,4 @@
-import { HighlightrSettings } from "../settings/settingsData";
+import { HighlightrSettings, createDefaultHighlighterClass } from "../settings/settingsData";
 import { setAttributes } from "./setAttributes";
 
 function addNewStyle(selector: any, style: any, sheet: HTMLElement) {
@@ -16,9 +16,9 @@ export function createStyles(settings: HighlightrSettings) {
   header.appendChild(styleSheet);
 
   Object.keys(settings.highlighters).forEach((highlighter) => {
-    let colorLowercase = highlighter.toLowerCase();
+    const className = (settings.highlighterClasses?.[highlighter] ?? createDefaultHighlighterClass(highlighter)).toLowerCase();
     addNewStyle(
-      `.hltr-${colorLowercase},\nmark.hltr-${colorLowercase},\n.markdown-preview-view mark.hltr-${colorLowercase}`,
+      `.hltr-${className},\nmark.hltr-${className},\n.markdown-preview-view mark.hltr-${className}`,
       `background: ${settings.highlighters[highlighter]};`,
       styleSheet
     );

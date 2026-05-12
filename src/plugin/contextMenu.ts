@@ -1,6 +1,6 @@
 import type HighlightrPlugin from "./main";
 import { Menu, Modal, Setting } from "obsidian";
-import { HighlightrSettings } from "../settings/settingsData";
+import { HighlightrSettings, createDefaultHighlighterClass } from "../settings/settingsData";
 import { EnhancedApp, EnhancedEditor } from "../settings/types";
 
 const MARK_REGEX = /<mark\b[^>]*>[\s\S]*?<\/mark>/g;
@@ -375,7 +375,7 @@ function addColorSubmenu(
   menu: Menu,
   title: string,
   settings: HighlightrSettings,
-  onColor: (color: string) => void,
+  onColor: (highlighter: string, color: string) => void,
 ): void {
   menu.addItem((item) => {
     item.setTitle(title).setIcon("highlightr-pen");
@@ -384,7 +384,7 @@ function addColorSubmenu(
       item.onClick(() => {
         const first = settings.highlighterOrder[0];
         if (!first) return;
-        onColor(settings.highlighters[first]);
+        onColor(first, settings.highlighters[first]);
       });
       return;
     }
@@ -402,7 +402,7 @@ function addColorSubmenu(
         highlighterItem
           .setTitle(highlighter)
           .setIcon("highlighter")
-          .onClick(() => onColor(color));
+          .onClick(() => onColor(highlighter, color));
         const itemDom = highlighterItem.dom as HTMLElement;
         itemDom.addClass("highlightr-color-menu-item");
         itemDom.style.setProperty("--highlightr-color", color && color.trim().length > 0 ? color : "transparent");
@@ -485,18 +485,35 @@ export default function contextMenu(
     finalizeAfterEdit();
   };
 
-  const applyHighlightToSelection = (color: string) => {
+  const applyHighlightToSelection = (highlighter: string, color: string) => {
     if (!hasSelection) return;
-    const wrapped = `<mark style="background-color: ${color};">${selection}</mark>`;
+    const isCssClassesMode = settings.highlighterMethods === "css-classes";
+    const className = (settings.highlighterClasses?.[highlighter] ?? createDefaultHighlighterClass(highlighter)).toLowerCase();
+    const wrapped = isCssClassesMode
+      ? `<mark class="hltr-${className}">${selection}</mark>`
+      : `<mark style="background-color: ${color};">${selection}</mark>`;
     editor.replaceSelection(wrapped);
     editor.focus();
     finalizeAfterEdit();
   };
 
-  const applyHighlightToMark = (range: EditorRange, parsed: ParsedMark, color: string) => {
+  const applyHighlightToMark = (range: EditorRange, parsed: ParsedMark, highlighter: string, color: string) => {
     let attributes = parsed.attributes;
     attributes = removeHighlightStyling(attributes);
-    attributes = setAttribute(attributes, "style", `background-color: ${color};`);
+    if (settings.highlighterMethods === "css-classes") {
+      const className = (settings.highlighterClasses?.[highlighter] ?? createDefaultHighlighterClass(highlighter)).toLowerCase();
+      const classValue = getAttribute(attributes, "class");
+      const remainingClasses = classValue
+        ? classValue
+            .split(/\s+/)
+            .map((token) => token.trim())
+            .filter((token) => token.length > 0 && !token.startsWith("hltr-"))
+        : [];
+      remainingClasses.push(`hltr-${className}`);
+      attributes = setAttribute(attributes, "class", remainingClasses.join(" "));
+    } else {
+      attributes = setAttribute(attributes, "style", `background-color: ${color};`);
+    }
     replaceRange(editor, range, createMark(parsed.innerContent, attributes));
     finalizeAfterEdit();
   };
@@ -531,8 +548,8 @@ export default function contextMenu(
   };
 
   if (!hasActiveMark && hasSelection) {
-    addColorSubmenu(menu, "Highlight", settings, (color) => {
-      applyHighlightToSelection(color);
+    addColorSubmenu(menu, "Highlight", settings, (highlighter, color) => {
+      applyHighlightToSelection(highlighter, color);
     });
 
     menu.addItem((item) => {
@@ -553,13 +570,13 @@ export default function contextMenu(
   if (hasActiveHighlight && !hasActiveAnnotation) {
     menu.addItem((item) => {
       item
-        .setTitle("Erase highlight")
+        .setTitle("Unhighlight")
         .setIcon("highlightr-eraser")
         .onClick(() => eraseHighlight(activeRange, activeMark));
     });
 
-    addColorSubmenu(menu, "Change highlight color", settings, (color) => {
-      applyHighlightToMark(activeRange, activeMark, color);
+    addColorSubmenu(menu, "Change highlight color", settings, (highlighter, color) => {
+      applyHighlightToMark(activeRange, activeMark, highlighter, color);
     });
 
     menu.addItem((item) => {
@@ -576,13 +593,13 @@ export default function contextMenu(
   if (hasActiveHighlight && hasActiveAnnotation) {
     menu.addItem((item) => {
       item
-        .setTitle("Erase highlight")
+        .setTitle("Unhighlight")
         .setIcon("highlightr-eraser")
         .onClick(() => eraseHighlight(activeRange, activeMark));
     });
 
-    addColorSubmenu(menu, "Change highlight color", settings, (color) => {
-      applyHighlightToMark(activeRange, activeMark, color);
+    addColorSubmenu(menu, "Change highlight color", settings, (highlighter, color) => {
+      applyHighlightToMark(activeRange, activeMark, highlighter, color);
     });
 
     menu.addItem((item) => {
@@ -611,8 +628,8 @@ export default function contextMenu(
   }
 
   if (!hasActiveHighlight && hasActiveAnnotation) {
-    addColorSubmenu(menu, "Highlight", settings, (color) => {
-      applyHighlightToMark(activeRange, activeMark, color);
+    addColorSubmenu(menu, "Highlight", settings, (highlighter, color) => {
+      applyHighlightToMark(activeRange, activeMark, highlighter, color);
     });
 
     menu.addItem((item) => {
@@ -634,8 +651,8 @@ export default function contextMenu(
   }
 
   if (clickedNoteIcon) {
-    addColorSubmenu(menu, "Highlight", settings, (color) => {
-      applyHighlightToMark(activeRange, activeMark, color);
+    addColorSubmenu(menu, "Highlight", settings, (highlighter, color) => {
+      applyHighlightToMark(activeRange, activeMark, highlighter, color);
     });
   }
 }

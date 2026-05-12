@@ -47,7 +47,7 @@ export class NotesTab extends ItemView {
                 return;
             }
 
-            const allHighlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }> = [];
+            const allHighlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string; cssClass: string | null }> = [];
 
             // Process each markdown leaf
             for (const leaf of markdownLeaves) {
@@ -64,6 +64,7 @@ export class NotesTab extends ItemView {
                     const noteRegex = /data-note="([^"]*)"/;
                     const tagsRegex = /data-tags="([^"]*)"/;
                     const colorRegex = /background(?:-color)?:\s*((?:rgb\([^)]+\)|#[A-Fa-f0-9]+))/;
+                    const classRegex = /\bclass="([^"]*)"/i;
                     const highlightRegex = /<mark[^>]*>(.*?)<\/mark>/g;
 
                     let match;
@@ -92,12 +93,21 @@ export class NotesTab extends ItemView {
                         const color = colorMatch ? colorMatch[1] : null;
                         console.log("Found color:", color);
 
+                        const classMatch = fullMatch.match(classRegex);
+                        const classTokens = classMatch?.[1]
+                            ?.split(/\s+/)
+                            .map((token) => token.trim())
+                            .filter((token) => token.length > 0) ?? [];
+                        const cssClass = classTokens.find((token) => token.startsWith("hltr-")) ?? null;
+                        console.log("Found css class:", cssClass);
+
                         allHighlights.push({
                             text,
                             note,
                             color,
                             tags,
-                            filePath: view.file.path
+                            filePath: view.file.path,
+                            cssClass
                         });
                     }
                 }
@@ -118,39 +128,102 @@ export class NotesTab extends ItemView {
         }
     }
 
+    private decodeHtmlEntities(text: string): string {
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        return textarea.value;
+    }
+
+    private appendSanitized(node: Node, target: HTMLElement): void {
+        if (node.nodeType === Node.TEXT_NODE) {
+            target.appendChild(document.createTextNode(node.textContent ?? ''));
+            return;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+            return;
+        }
+
+        const element = node as HTMLElement;
+        const tagName = element.tagName.toLowerCase();
+
+        if (tagName === 'sub' || tagName === 'sup') {
+            const safeElement = document.createElement(tagName);
+            Array.from(element.childNodes).forEach((child) => this.appendSanitized(child, safeElement));
+            target.appendChild(safeElement);
+            return;
+        }
+
+        Array.from(element.childNodes).forEach((child) => this.appendSanitized(child, target));
+    }
+
     private renderHighlightText(container: HTMLElement, text: string): void {
         const template = document.createElement('template');
         template.innerHTML = text;
+        Array.from(template.content.childNodes).forEach((node) => this.appendSanitized(node, container));
+    }
 
-        const appendSanitized = (node: Node, target: HTMLElement): void => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                target.appendChild(document.createTextNode(node.textContent ?? ''));
-                return;
+    private renderNoteText(container: HTMLElement, text: string): void {
+        const decodedText = this.decodeHtmlEntities(text);
+        const lines = decodedText.split(/\r?\n/);
+        let index = 0;
+
+        while (index < lines.length) {
+            const line = lines[index].trim();
+            if (!line) {
+                index += 1;
+                continue;
             }
 
-            if (node.nodeType !== Node.ELEMENT_NODE) {
-                return;
+            const bulletMatch = line.match(/^[-*+]\s+(.+)$/);
+            const numberedMatch = line.match(/^\d+[.)]\s+(.+)$/);
+
+            if (bulletMatch || numberedMatch) {
+                const listEl = document.createElement(numberedMatch ? 'ol' : 'ul');
+
+                while (index < lines.length) {
+                    const currentLine = lines[index].trim();
+                    if (!currentLine) {
+                        index += 1;
+                        continue;
+                    }
+
+                    const currentBulletMatch = currentLine.match(/^[-*+]\s+(.+)$/);
+                    const currentNumberedMatch = currentLine.match(/^\d+[.)]\s+(.+)$/);
+
+                    if (numberedMatch && currentNumberedMatch) {
+                        const listItem = document.createElement('li');
+                        this.renderHighlightText(listItem, currentNumberedMatch[1]);
+                        listEl.appendChild(listItem);
+                        index += 1;
+                        continue;
+                    }
+
+                    if (bulletMatch && currentBulletMatch) {
+                        const listItem = document.createElement('li');
+                        this.renderHighlightText(listItem, currentBulletMatch[1]);
+                        listEl.appendChild(listItem);
+                        index += 1;
+                        continue;
+                    }
+
+                    break;
+                }
+
+                container.appendChild(listEl);
+                continue;
             }
 
-            const element = node as HTMLElement;
-            const tagName = element.tagName.toLowerCase();
-
-            if (tagName === 'sub' || tagName === 'sup') {
-                const safeElement = document.createElement(tagName);
-                Array.from(element.childNodes).forEach((child) => appendSanitized(child, safeElement));
-                target.appendChild(safeElement);
-                return;
-            }
-
-            Array.from(element.childNodes).forEach((child) => appendSanitized(child, target));
-        };
-
-        Array.from(template.content.childNodes).forEach((node) => appendSanitized(node, container));
+            const lineEl = document.createElement('div');
+            this.renderHighlightText(lineEl, line);
+            container.appendChild(lineEl);
+            index += 1;
+        }
     }
 
     private displayHighlights(
         container: HTMLDivElement,
-        highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string }>,
+        highlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string; cssClass: string | null }>,
         activeFilePath?: string
     ): void {
         const existingFormattedContent = container.querySelector('.highlightr-formatted-content');
@@ -184,13 +257,14 @@ export class NotesTab extends ItemView {
             return;
         }
 
-        fileHighlights.forEach(({ text, note, color, tags }: { text: string; note: string | null; color: string | null; tags: string[]; filePath: string }) => {
+        fileHighlights.forEach(({ text, note, color, tags, cssClass }: { text: string; note: string | null; color: string | null; tags: string[]; filePath: string; cssClass: string | null }) => {
             const highlightEl = fileSection.createDiv({ cls: "highlight-item" });
 
-            // Create highlight text with background color
             const textEl = highlightEl.createDiv({ cls: "highlight-text" });
             if (color) {
                 textEl.style.background = color;
+            } else if (cssClass) {
+                textEl.addClass(cssClass);
             }
             this.renderHighlightText(textEl, text);
 
@@ -201,7 +275,8 @@ export class NotesTab extends ItemView {
                 });
                 const noteIconEl = noteEl.createSpan({ cls: "note-icon" });
                 setIcon(noteIconEl, "sticky-note");
-                this.renderHighlightText(noteEl, note);
+                const noteContentEl = noteEl.createDiv({ cls: "highlight-note-content" });
+                this.renderNoteText(noteContentEl, note);
             }
 
             // Create tags if exist

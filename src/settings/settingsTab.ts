@@ -8,12 +8,11 @@ import {
 } from "obsidian";
 import Pickr from "@simonwep/pickr";
 import Sortable from "sortablejs";
-import { HIGHLIGHTER_METHODS, HIGHLIGHTER_STYLES } from "./settingsData";
+import { HIGHLIGHTER_METHODS, HIGHLIGHTER_STYLES, createDefaultHighlighterClass } from "./settingsData";
 import { setAttributes } from "../utils/setAttributes";
 
 export class HighlightrSettingTab extends PluginSettingTab {
   plugin: HighlightrPlugin;
-  appendMethod: string;
 
   constructor(app: App, plugin: HighlightrPlugin) {
     super(app, plugin);
@@ -99,6 +98,10 @@ export class HighlightrSettingTab extends PluginSettingTab {
     colorInput.setPlaceholder("Color name");
     colorInput.inputEl.addClass("highlighter-settings-color");
 
+    const classInput = new TextComponent(highlighterSetting.controlEl);
+    classInput.setPlaceholder("Class name");
+    classInput.inputEl.addClass("highlighter-settings-class");
+
     const valueInput = new TextComponent(highlighterSetting.controlEl);
     valueInput.setPlaceholder("Color hex code");
     valueInput.inputEl.addClass("highlighter-settings-value");
@@ -109,7 +112,6 @@ export class HighlightrSettingTab extends PluginSettingTab {
       })
       .then(() => {
         let input = valueInput.inputEl;
-        let currentColor = valueInput.inputEl.value || null;
 
         const colorMap = this.plugin.settings.highlighterOrder.map(
           (highlightKey) => this.plugin.settings.highlighters[highlightKey]
@@ -147,8 +149,6 @@ export class HighlightrSettingTab extends PluginSettingTab {
             input.trigger("change");
           })
           .on("cancel", function (instance: Pickr) {
-            currentColor = instance.getSelectedColor().toHEXA().toString();
-
             input.trigger("change");
             instance.hide();
           })
@@ -192,27 +192,31 @@ export class HighlightrSettingTab extends PluginSettingTab {
           .setTooltip("Save")
           .onClick(async (buttonEl: any) => {
             let color = colorInput.inputEl.value.replace(" ", "-");
+            let customClass = classInput.inputEl.value.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "");
             let value = valueInput.inputEl.value;
 
             if (color && value) {
-              if (!this.plugin.settings.highlighterOrder.includes(color)) {
+              if (this.plugin.settings.highlighterOrder.indexOf(color) === -1) {
                 this.plugin.settings.highlighterOrder.push(color);
                 this.plugin.settings.highlighters[color] = value;
+                this.plugin.settings.highlighterClasses[color] = customClass || createDefaultHighlighterClass(color);
                 setTimeout(() => {
                   dispatchEvent(new Event("Highlightr-NewCommand"));
                 }, 100);
                 await this.plugin.saveSettings();
                 this.display();
+                return;
               } else {
                 buttonEl.stopImmediatePropagation();
                 new Notice("This color already exists");
+                return;
               }
             }
             color && !value
               ? new Notice("Highlighter hex code missing")
               : !color && value
               ? new Notice("Highlighter name missing")
-              : new Notice("Highlighter values missing"); // else
+              : new Notice("Highlighter values missing");
           });
       });
 
@@ -229,10 +233,15 @@ export class HighlightrSettingTab extends PluginSettingTab {
       forceFallback: true,
       fallbackClass: "highlighter-sortable-fallback",
       easing: "cubic-bezier(1, 0, 0, 1)",
-      onSort: (command: { oldIndex: number; newIndex: number }) => {
+      onSort: (command: Sortable.SortableEvent) => {
+        const oldIndex = command.oldIndex;
+        const newIndex = command.newIndex;
+        if (oldIndex == null || newIndex == null) {
+          return;
+        }
         const arrayResult = this.plugin.settings.highlighterOrder;
-        const [removed] = arrayResult.splice(command.oldIndex, 1);
-        arrayResult.splice(command.newIndex, 0, removed);
+        const [removed] = arrayResult.splice(oldIndex, 1);
+        arrayResult.splice(newIndex, 0, removed);
         this.plugin.settings.highlighterOrder = arrayResult;
         this.plugin.saveSettings();
       },
@@ -246,10 +255,18 @@ export class HighlightrSettingTab extends PluginSettingTab {
       colorIcon.addClass("highlighter-setting-icon");
       colorIcon.innerHTML = icon;
 
-      new Setting(settingItem)
+      const highlighterClassName = this.plugin.settings.highlighterClasses?.[highlighter] || createDefaultHighlighterClass(highlighter);
+      const highlighterSettingItem = new Setting(settingItem)
         .setClass("highlighter-setting-item")
         .setName(highlighter)
-        .setDesc(this.plugin.settings.highlighters[highlighter])
+        .setDesc(this.plugin.settings.highlighters[highlighter]);
+
+      highlighterSettingItem.infoEl.createEl("div", {
+        cls: "highlighter-setting-classname",
+        text: `class="hltr-${highlighterClassName.toLowerCase()}"`,
+      });
+
+      highlighterSettingItem
         .addButton((button) => {
           button
             .setClass("HighlightrSettingsButton")
@@ -262,6 +279,7 @@ export class HighlightrSettingTab extends PluginSettingTab {
                 `highlightr-plugin:${highlighter}`
               );
               delete this.plugin.settings.highlighters[highlighter];
+              delete this.plugin.settings.highlighterClasses[highlighter];
               this.plugin.settings.highlighterOrder.remove(highlighter);
               setTimeout(() => {
                 dispatchEvent(new Event("Highlightr-NewCommand"));
