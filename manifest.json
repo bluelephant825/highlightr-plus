@@ -1,10 +1,12 @@
 {
-  "id": "highlightr-plugin",
-  "name": "Highlightr",
-  "version": "1.2.2",
+  "id": "obsidian-highlighter-plugin",
+  "name": "Highlighter",
+  "version": "1.0.0",
   "minAppVersion": "0.12.8",
-  "description": "A minimal and aesthetically pleasing highlighting menu that makes color-coded highlighting much easier with a configurable assortment of highlight colors 🎨.",
-  "author": "chetachi",
-  "authorUrl": "https://github.com/chetachiezikeuzor",
+  "description": "A minimal and aesthetically pleasing highlighting and annotating menu that makes color-coded highlighting much easier with a configurable assortment of highlight colors 🎨.",
+  "author": "Olivier de Broqueville and Chetachi",
+  "authorUrl": "https://github.com/bluelephant825",
+  "license": "MIT",
+  "main": "main.js",
   "isDesktopOnly": false
 }

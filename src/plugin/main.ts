@@ -1,5 +1,6 @@
 import { Editor, Menu, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
 import { wait } from "../utils/util";
+import { debounce } from "../utils/debounce";
 import addIcons from "../icons/customIcons";
 import { HighlightrSettingTab } from "../settings/settingsTab";
 import { HighlightrSettings } from "../settings/settingsData";
@@ -17,6 +18,8 @@ export default class HighlightrPlugin extends Plugin {
     manifest: PluginManifest;
     settings: HighlightrSettings;
     private clickHandlerBound: (e: MouseEvent) => void;
+    private isUpdatingEditorContent: boolean = false;
+    private suppressFullProcessingUntil: number = 0;
 
     async onload() {
         console.log(`Highlightr v${this.manifest.version} loaded`);
@@ -65,10 +68,13 @@ export default class HighlightrPlugin extends Plugin {
         );
 
         this.registerEvent(
-            this.app.workspace.on("editor-change", () => {
+            this.app.workspace.on("editor-change", debounce(() => {
+                if (this.isUpdatingEditorContent) return;
+                if (Date.now() < this.suppressFullProcessingUntil) return;
+                this.processMarkTags();
                 this.cleanupNotes();
                 this.triggerNotesTabUpdate();
-            })
+            }, 120))
         );
 
         this.registerEvent(
@@ -394,87 +400,164 @@ export default class HighlightrPlugin extends Plugin {
 
             const cursorPos = view.editor.getCursor();
 
-            // Create icon once
             const iconSpan = document.createElement('span');
             iconSpan.className = 'note-icon';
             setIcon(iconSpan, 'sticky-note');
             const noteIconHtml = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
 
-            // Single pass replacement with better patterns
             const cleanContent = content.replace(
-                /<mark((?![^>]*data-note)[^>]*|.*?data-note="([^"]*)" data-tags="([^"]*)">([^<]*)<\/mark>(?:\s*<span class="note-icon">.*?<\/span>)*)/g,
-                (match, attrs, note, tags) => {
-                    // Remove any existing note icons
-                    const cleanMatch = match.replace(/<span class="note-icon">.*?<\/span>/g, '');
-                    // Only add icon if there's a note
-                    return note ? cleanMatch + noteIconHtml : cleanMatch;
+                /<mark([^>]*)>([\s\S]*?)<\/mark>(?:\s*<span class="note-icon">[\s\S]*?<\/span>)*/g,
+                (match, attrs, inner) => {
+                    const attrsText = (attrs || "").trim();
+                    const noteMatch = attrsText.match(/\bdata-note="([^"]*)"/i);
+                    const hasNote = !!noteMatch && noteMatch[1].trim().length > 0;
+                    const attrPart = attrsText.length > 0 ? ` ${attrsText}` : "";
+                    const rebuiltMark = `<mark${attrPart}>${inner}</mark>`;
+                    return hasNote ? `${rebuiltMark}${noteIconHtml}` : rebuiltMark;
                 }
             );
 
             if (content !== cleanContent) {
+                this.isUpdatingEditorContent = true;
                 view.editor.setValue(cleanContent);
                 view.editor.setCursor(cursorPos);
+                this.isUpdatingEditorContent = false;
             }
         } catch (error) {
+            this.isUpdatingEditorContent = false;
             console.error('Error in cleanupNotes:', error);
         }
+    }
+
+    suppressFullPostProcessing(durationMs: number = 400): void {
+        this.suppressFullProcessingUntil = Date.now() + durationMs;
+    }
+
+    syncDecorationsNearSelection(editor?: Editor): void {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view?.editor) return;
+        const targetEditor = editor ?? view.editor;
+        const cursor = targetEditor.getCursor("from");
+        const startLine = Math.max(0, cursor.line - 2);
+        const endLine = Math.min(targetEditor.lastLine(), cursor.line + 2);
+        const from = { line: startLine, ch: 0 };
+        const to = { line: endLine, ch: targetEditor.getLine(endLine).length };
+        const segment = targetEditor.getRange(from, to);
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'note-icon';
+        setIcon(iconSpan, 'sticky-note');
+        const noteIconHtml = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
+
+        const cleaned = segment
+            .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
+            .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
+            .replace(/<span class="highlight-tags">\s*<\/span>/g, '')
+            .replace(/<span class="highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
+
+        const rebuilt = cleaned.replace(
+            /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
+            (match, attributes, innerContent) => {
+                const normalizedAttributes = (attributes || "").trim();
+                const attrPart = normalizedAttributes.length > 0 ? ` ${normalizedAttributes}` : "";
+                const dataTagsMatch = normalizedAttributes.match(/\bdata-tags="([^"]*)"/);
+                const tags = dataTagsMatch ? dataTagsMatch[1] : "";
+                const dataNoteMatch = normalizedAttributes.match(/\bdata-note="([^"]*)"/);
+                const note = dataNoteMatch ? dataNoteMatch[1] : "";
+                let additionalContent = "";
+
+                if (note.trim().length > 0) {
+                    additionalContent += noteIconHtml;
+                }
+
+                if (tags.trim().length > 0) {
+                    const tagArray = tags
+                        .split(',')
+                        .map((tag: string) => tag.trim())
+                        .filter((tag: string) => tag.length > 0)
+                        .map((tag: string) => '#' + tag.replace(/\s+/g, '-'));
+                    if (tagArray.length > 0) {
+                        let tagsMarkup = '<span class="highlight-tags">';
+                        tagArray.forEach((tag: string) => {
+                            tagsMarkup += `<span class="highlight-tag">${tag}</span>`;
+                        });
+                        tagsMarkup += '</span>';
+                        additionalContent += tagsMarkup;
+                    }
+                }
+
+                return `<mark${attrPart}>${innerContent}</mark>${additionalContent}`;
+            }
+        );
+
+        if (segment !== rebuilt) {
+            this.isUpdatingEditorContent = true;
+            targetEditor.replaceRange(rebuilt, from, to);
+            targetEditor.setCursor(cursor);
+            this.isUpdatingEditorContent = false;
+        }
+
+        this.triggerNotesTabUpdate();
     }
 
     private processMarkTags(): void {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!view?.editor) return;
 
-        let content = view.editor.getValue();
+        const content = view.editor.getValue();
         if (!content) return;
 
         const cursorPos = view.editor.getCursor();
 
-        // Remove any existing note icons and tag markup
         const cleanContent = content
-            .replace(/<span class="note-icon">.*?<\/span>/g, '')
-            .replace(/<span class="highlight-tags">.*?<span class="highlight-tag">[^<]*?<\/span><\/span>/g, '');
+            .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
+            .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
+            .replace(/<span class="highlight-tags">\s*<\/span>/g, '')
+            .replace(/<span class="highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
 
         const updatedContent = cleanContent.replace(
-            /<mark\b([^>]*)>(.*?)<\/mark>/g,
+            /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
             (match, attributes, innerContent) => {
-                const dataTagsMatch = attributes.match(/\bdata-tags="([^"]*)"/);
-                const tags = dataTagsMatch ? dataTagsMatch[1] : [];
-                const dataNoteMatch = attributes.match(/\bdata-note="([^"]*)"/);
+                const normalizedAttributes = (attributes || "").trim();
+                const attrPart = normalizedAttributes.length > 0 ? ` ${normalizedAttributes}` : "";
+                const dataTagsMatch = normalizedAttributes.match(/\bdata-tags="([^"]*)"/);
+                const tags = dataTagsMatch ? dataTagsMatch[1] : "";
+                const dataNoteMatch = normalizedAttributes.match(/\bdata-note="([^"]*)"/);
                 const note = dataNoteMatch ? dataNoteMatch[1] : "";
                 let additionalContent = "";
 
-                // Process note: append a note icon if not already present.
-                if (note) {
+                if (note.trim().length > 0) {
                     const iconSpan = document.createElement('span');
                     iconSpan.className = 'note-icon';
                     setIcon(iconSpan, 'sticky-note');
                     additionalContent += `<span class="note-icon">${iconSpan.innerHTML}</span>`;
                 }
 
-                // Process tags: build the tag display markup.
-                if (tags.length > 0) {
+                if (tags.trim().length > 0) {
                     const tagArray = tags
                         .split(',')
                         .map((tag: string) => tag.trim())
                         .filter((tag: string) => tag.length > 0)
                         .map((tag: string) => '#' + tag.replace(/\s+/g, '-'));
-                    let tagsMarkup = '<span class="highlight-tags">';
-                    tagArray.forEach((tag: string) => {
-                        tagsMarkup += `<span class="highlight-tag">${tag}</span>`;
-                    });
-                    tagsMarkup += '</span>';
-                    additionalContent += tagsMarkup;
+                    if (tagArray.length > 0) {
+                        let tagsMarkup = '<span class="highlight-tags">';
+                        tagArray.forEach((tag: string) => {
+                            tagsMarkup += `<span class="highlight-tag">${tag}</span>`;
+                        });
+                        tagsMarkup += '</span>';
+                        additionalContent += tagsMarkup;
+                    }
                 }
 
-                // Reassemble the <mark> element with the original attributes, inner content, and modified additional content.
-                return `<mark ${attributes}>${innerContent}</mark>${additionalContent}`;
+                return `<mark${attrPart}>${innerContent}</mark>${additionalContent}`;
             }
         );
 
         if (content !== updatedContent) {
+            this.isUpdatingEditorContent = true;
             view.editor.setValue(updatedContent);
-            // Restore cursor position
             view.editor.setCursor(cursorPos);
+            this.isUpdatingEditorContent = false;
         }
     }
 
