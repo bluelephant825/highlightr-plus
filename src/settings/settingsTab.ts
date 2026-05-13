@@ -19,13 +19,44 @@ export class HighlightrSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  private getHighlighterHotkeyLabel(highlighter: string): string | null {
+    const commandId = `highlightr-plugin:${highlighter}`;
+    const hotkeyManager = (this.app as any).hotkeyManager;
+
+    if (!hotkeyManager || typeof hotkeyManager.getHotkeys !== "function") {
+      return null;
+    }
+
+    const hotkeys = hotkeyManager.getHotkeys(commandId);
+    if (!hotkeys || hotkeys.length === 0) {
+      return null;
+    }
+
+    const firstHotkey = hotkeys[0];
+
+    if (typeof hotkeyManager.printHotkey === "function") {
+      return hotkeyManager.printHotkey(firstHotkey);
+    }
+
+    const modifiers = Array.isArray(firstHotkey.modifiers) ? firstHotkey.modifiers : [];
+    const key = firstHotkey.key ?? "";
+    const parts = [...modifiers, key].filter(Boolean);
+    return parts.length ? parts.join("+") : null;
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h1", { text: "Highlightr" });
-    containerEl.createEl("p", { text: "Created by " }).createEl("a", {
+    const createdBy = containerEl.createEl("p", { text: "Created by " });
+    createdBy.createEl("a", {
       text: "Chetachi 👩🏽‍💻",
       href: "https://github.com/chetachiezikeuzor",
+    });
+    createdBy.createEl("span", { text: " and " });
+    createdBy.createEl("a", {
+      text: "Olivier 👨🏼‍💻",
+      href: "https://github.com/bluelephant825",
     });
     containerEl.createEl("h2", { text: "Plugin Settings" });
 
@@ -266,6 +297,14 @@ export class HighlightrSettingTab extends PluginSettingTab {
         text: `class="hltr-${highlighterClassName.toLowerCase()}"`,
       });
 
+      const hotkeyLabel = this.getHighlighterHotkeyLabel(highlighter);
+      if (hotkeyLabel) {
+        highlighterSettingItem.infoEl.createEl("div", {
+          cls: "highlighter-setting-hotkey",
+          text: hotkeyLabel,
+        });
+      }
+
       highlighterSettingItem
         .addButton((button) => {
           button
@@ -297,11 +336,16 @@ export class HighlightrSettingTab extends PluginSettingTab {
     });
 
     const donateText = createEl("p");
+    const donateToChetachi = createEl("h3");
+    donateToChetachi.appendText("Donate to Chetachi");
+    const donateToOlivier = createEl("h3");
+    donateToOlivier.addClass("hltrDonationHeadingSpacing");
+    donateToOlivier.appendText("Donate to Olivier");
     donateText.appendText(
       "If you like this Plugin and are considering donating to support continued development, use the buttons below!"
     );
-
     hltrDonationDiv.appendChild(donateText);
+    hltrDonationDiv.appendChild(donateToChetachi);
     hltrDonationDiv.appendChild(
       paypalButton("https://paypal.me/chelseaezikeuzor")
     );
@@ -309,6 +353,10 @@ export class HighlightrSettingTab extends PluginSettingTab {
       buyMeACoffeeButton("https://www.buymeacoffee.com/chetachi")
     );
     hltrDonationDiv.appendChild(kofiButton("https://ko-fi.com/chetachi"));
+    hltrDonationDiv.appendChild(donateToOlivier);
+    hltrDonationDiv.appendChild(
+      paypalButton("https://paypal.me/odebroqueville")
+    );
   }
 }
 

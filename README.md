@@ -1,12 +1,12 @@
-# Highlighter Plugin
+# Highlightr+ Plugin
 
-<img src="https://raw.githubusercontent.com/chetachiezikeuzor/Highlightr-Plugin/master/assets/Highlightr%20Demo%20Header.png" style=" box-shadow: 0 2px 8px 0 var(--background-modifier-border); border-radius: 8px; ">
+<img src="assets/Highlightr Demo Header.png" style=" box-shadow: 0 2px 8px 0 var(--background-modifier-border); border-radius: 8px; ">
 
 ### Status: This plugin is currently available in the Obsidian plugin store
 
-Highlighter is a simple plugin that brings a minimal and aesthetically pleasing highlighting and annotating menu into the Obsidian note-taking app. This plugin makes color-coded highlighting much easier with a user-friendly assortment of highlight colors.
+Highlightr+ is a simple plugin that brings a minimal and aesthetically pleasing highlighting and annotating menu into the Obsidian note-taking app. This plugin makes color-coded highlighting much easier with a user-friendly assortment of highlight colors.
 
-This plugin is based on Chetachi's original Highlightr plugin.
+This plugin is based on Chetachi's original Highlightr plugin. The screenshots below are from the Highlightr plugin and the UI may be slightly different in Highlightr+, but the functionality is the same.
 
 ## Demo
 
@@ -30,13 +30,13 @@ This plugin adds different context menu items depending on where you right-click
 
 <img src="https://user-images.githubusercontent.com/79069364/142739490-e6824979-c339-449e-88c2-051979b7a6aa.png" style=" box-shadow: 0 2px 8px 0 var(--background-modifier-border); border-radius: 8px; ">
 
-You can also use the new command added in version [1.0.0]() to open your highlighlighter menu. Now, you can open your highlighting menu with a hotkey of your choosing. You will be able to add hotkeys to each individual highlighter color from your highlighter menu, as the plugin creates a command for each highlighter as well.
+You can also use the command palette or a hotkey of your choosing to open your highlighlighter menu. You will be able to add hotkeys to each individual highlighter color from your highlighter menu, as the plugin creates a command for each highlighter as well.
 
 <img src="https://user-images.githubusercontent.com/79069364/142739122-aed7a0ee-e7d8-4595-90f5-9e809f44ef04.gif" style=" box-shadow: 0 2px 8px 0 var(--background-modifier-border); border-radius: 8px; ">
 
 <img src="https://user-images.githubusercontent.com/79069364/142739489-8f1e3243-f07a-4b40-a9d7-9c36dd3a784b.png" style=" box-shadow: 0 2px 8px 0 var(--background-modifier-border); border-radius: 8px; ">
 
-Version [1.1.2]() adds the ability to choose between inline CSS and CSS classes. This will create a new stylesheet that will how all of your highlight colors. Each class is named `hltr-${highlight_title_here}` and are generated from the titles by which you have named your highlights. Although inline CSS is highly encouraged, CSS classes will make your highlights much more flexible and easier to customize.
+The plugin settings give you the ability to choose between 'inline CSS' and 'CSS classes' highlighting modes. The former will add a new style attribute whilst the latter will add a new class attribute with your chosen highlight color. Each class is named `hltr-${highlight_title_here}` by default and is generated from the title by which you have named your highlight color. Although inline CSS is highly encouraged, CSS classes will make your highlights much more flexible and easier to customize.
 
 ## Disclaimer
 
@@ -74,7 +74,7 @@ If you like this Plugin and are considering donating to support continued develo
 
 Created with ❤️ by Chetachi & Olivier
 
-Donate to Chetachi
+**Donate to Chetachi**
 <br/>
 <br/>
 <a href="https://www.buymeacoffee.com/chetachi"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&amp;emoji=&amp;slug=chetachi&amp;button_colour=e3e7ef&amp;font_colour=262626&amp;font_family=Poppins&amp;outline_colour=262626&amp;coffee_colour=ff0000"></a>
@@ -87,7 +87,7 @@ Donate to Chetachi
 <img src="https://raw.githubusercontent.com/chetachiezikeuzor/Highlightr-Plugin/master/assets/kofi_color.svg" height="50"></a>
 
 
-Donate to Olivier
+**Donate to Olivier**
 <br />
 <br/>
 <a href="https://paypal.me/odebroqueville">

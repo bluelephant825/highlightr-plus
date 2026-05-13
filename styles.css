@@ -272,12 +272,23 @@ button.HighlightrSettingsButton svg {
   display: block;
 }
 
-.setting-item-info {
+.highlighter-setting-item .setting-item-info {
   margin-left: 15px;
+  min-width: 570px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  column-gap: 16px;
 }
 
-.setting-item-control {
+.highlighter-setting-item .setting-item-info > div {
+  min-width: 0;
+}
+
+.highlighter-setting-item .setting-item-control {
   padding-right: 15px;
+  width: 100px;
 }
 
 .highlighterplugin-setting-item .setting-item-control {
@@ -323,6 +334,7 @@ button:not(.mod-cta):not(
   grid-template-columns: 0.5fr 7fr;
   align-items: center;
   border-top: 1px solid var(--background-modifier-border);
+  padding-top: 8px;
 }
 
 .HighlightrSettingsTabsContainer {
@@ -336,6 +348,14 @@ button:not(.mod-cta):not(
 .highlighter-setting-item {
   padding: 18px 0 18px 0;
   border-top: none;
+}
+
+.highlighter-setting-hotkey {
+  font-family: var(--font-monospace);
+  background: var(--background-modifier-hover);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 .highlighter-sortable-fallback {
@@ -373,6 +393,11 @@ HIGHLIGHTR SUPPORT
   margin: 0 auto;
   text-align: center;
   color: var(--text-normal);
+}
+
+.hltrDonationSection h3.hltrDonationHeadingSpacing {
+  display: block;
+  margin-top: 24px !important;
 }
 
 .pcr-app .pcr-swatches > button {
