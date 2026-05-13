@@ -1,12 +1,10 @@
 {
-  "id": "highlightr-plus-plugin",
+  "id": "highlightr-plus",
   "name": "Highlightr+",
   "version": "1.0.0",
   "minAppVersion": "0.12.8",
   "description": "A minimal and aesthetically pleasing highlighting and annotating menu that makes color-coded highlighting much easier with a configurable assortment of highlight colors 🎨.",
   "author": "Olivier and Chetachi",
   "authorUrl": "https://github.com/bluelephant825",
-  "license": "Mozilla Public License Version 2.0",
-  "licenseUrl": "https://opensource.org/licenses/MPL-2.0",
-  "main": "main.js"
+  "isDesktopOnly": false
 }
