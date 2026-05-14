@@ -1,4 +1,4 @@
-import { Editor, Menu, Notice, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
+import { Editor, EventRef, Menu, Notice, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
 import { wait } from "../utils/util";
 import { debounce } from "../utils/debounce";
 import addIcons from "../icons/customIcons";
@@ -41,11 +41,12 @@ const showHighlightrMenuFromCommand = (plugin: HighlightrPlugin, editor: Enhance
 };
 
 export default class HighlightrPlugin extends Plugin {
-    app: EnhancedApp;
-    editor: EnhancedEditor;
-    manifest: PluginManifest;
-    settings: HighlightrSettings;
-    private clickHandlerBound: (e: MouseEvent) => void;
+    app!: EnhancedApp;
+    editor!: EnhancedEditor;
+    manifest!: PluginManifest;
+    settings!: HighlightrSettings;
+    private clickHandlerBound!: (e: MouseEvent) => void;
+    private editorMenuEventRef: EventRef | null = null;
     private isUpdatingEditorContent: boolean = false;
     private suppressFullProcessingUntil: number = 0;
 
@@ -99,9 +100,17 @@ export default class HighlightrPlugin extends Plugin {
             console.log('Highlightr plugin initialization complete');
         });
 
-        this.registerEvent(
-            this.app.workspace.on("editor-menu", this.handleHighlighterInContextMenu)
-        );
+        this.editorMenuEventRef = (this.app.workspace as unknown as {
+            on: (name: string, callback: (menu: Menu, editor: Editor) => void) => EventRef;
+        }).on("editor-menu", (menu: Menu, editor: Editor) => {
+            this.handleHighlighterInContextMenu(menu, editor as EnhancedEditor);
+        });
+        this.register(() => {
+            if (this.editorMenuEventRef) {
+                this.app.workspace.offref(this.editorMenuEventRef);
+                this.editorMenuEventRef = null;
+            }
+        });
 
         // Register for view changes
         this.registerEvent(
@@ -137,8 +146,8 @@ export default class HighlightrPlugin extends Plugin {
             id: "highlighter-plugin-menu",
             name: "Open Highlightr",
             icon: "highlightr-pen",
-            editorCallback: (editor: EnhancedEditor) => {
-                showHighlightrMenuFromCommand(this, editor);
+            editorCallback: (editor: Editor) => {
+                showHighlightrMenuFromCommand(this, editor as EnhancedEditor);
             },
         });
 
@@ -170,8 +179,15 @@ export default class HighlightrPlugin extends Plugin {
         editor.focus();
     };
 
+    private getActiveHighlighters(): string[] {
+        const ordered = this.settings.highlighterOrder.length > 0
+            ? this.settings.highlighterOrder
+            : Object.keys(this.settings.highlighters);
+        return ordered.filter((highlighter) => this.settings.highlighterActivity?.[highlighter] !== false);
+    }
+
     generateCommands(editor: Editor) {
-        this.settings.highlighterOrder.forEach((highlighterKey: string) => {
+        this.getActiveHighlighters().forEach((highlighterKey: string) => {
             const applyCommand = (command: CommandPlot, editor: Editor) => {
                 const selectedText = editor.getSelection();
                 const curserStart = editor.getCursor("from");
@@ -202,10 +218,10 @@ export default class HighlightrPlugin extends Plugin {
                 const suf = editor.getRange(curserEnd, sufEnd);
 
                 const preLast = pre.slice(-1);
-                const prefixLast = prefix.trimStart().slice(-1);
+                const prefixLast = prefix.replace(/^\s+/, "").slice(-1);
                 const sufFirst = suf[0];
 
-                if (suf === suffix.trimEnd()) {
+                if (suf === suffix.replace(/\s+$/, "")) {
                     if (preLast === prefixLast && selectedText) {
                         editor.replaceRange(selectedText, preStart, sufEnd);
                         const changeCursor = (mode: number) => {
@@ -319,16 +335,41 @@ const colorValue = this.settings.highlighters[highlighterKey];
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
         this.settings.highlighterClasses = this.settings.highlighterClasses || {};
-        this.settings.highlighterOrder.forEach((highlighter) => {
+        this.settings.highlighterActivity = this.settings.highlighterActivity || {};
+        this.settings.highlighterOrder = this.settings.highlighterOrder || [];
+
+        const knownHighlighters = Array.from(new Set([
+            ...Object.keys(this.settings.highlighters),
+            ...this.settings.highlighterOrder,
+        ]));
+
+        const legacyStatuses = (this.settings as unknown as { highlighterStatuses?: Record<string, string> }).highlighterStatuses;
+
+        knownHighlighters.forEach((highlighter) => {
+            if (!this.settings.highlighters[highlighter]) {
+                return;
+            }
             const existingClass = this.settings.highlighterClasses[highlighter];
             if (!existingClass || !existingClass.trim()) {
                 this.settings.highlighterClasses[highlighter] = createDefaultHighlighterClass(highlighter);
             }
+            const activity = this.settings.highlighterActivity[highlighter];
+            if (typeof activity !== "boolean") {
+                const legacyStatus = legacyStatuses?.[highlighter];
+                this.settings.highlighterActivity[highlighter] = legacyStatus === "inactive" ? false : true;
+            }
+            if (this.settings.highlighterOrder.indexOf(highlighter) === -1) {
+                this.settings.highlighterOrder.push(highlighter);
+            }
         });
+
+        delete (this.settings as any).highlighterStatuses;
     }
 
     async saveSettings() {
-        await this.saveData(this.settings);
+        const settingsToSave = { ...this.settings } as Record<string, unknown>;
+        delete settingsToSave.highlighterStatuses;
+        await this.saveData(settingsToSave);
     }
 
     displayNoteBubble(note: string, event: MouseEvent) {

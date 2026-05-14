@@ -370,18 +370,30 @@ function annotateWithModal(
   });
 }
 
+function getActiveHighlighters(settings: HighlightrSettings): string[] {
+  const ordered = settings.highlighterOrder.length > 0
+    ? settings.highlighterOrder
+    : Object.keys(settings.highlighters);
+  return ordered.filter((highlighter) => settings.highlighterActivity?.[highlighter] !== false);
+}
+
 function addColorSubmenu(
   menu: Menu,
   title: string,
   settings: HighlightrSettings,
   onColor: (highlighter: string, color: string) => void,
 ): void {
+  const orderedHighlighters = getActiveHighlighters(settings);
+  if (orderedHighlighters.length === 0) {
+    return;
+  }
+
   menu.addItem((item) => {
     item.setTitle(title).setIcon("highlightr-pen");
     const contextItem = item as unknown as ContextMenuItem;
     if (typeof contextItem.setSubmenu !== "function") {
       item.onClick(() => {
-        const first = settings.highlighterOrder[0];
+        const first = getActiveHighlighters(settings)[0];
         if (!first) return;
         onColor(first, settings.highlighters[first]);
       });
@@ -389,10 +401,7 @@ function addColorSubmenu(
     }
     const submenu = contextItem.setSubmenu();
     submenu?.setUseNativeMenu?.(false);
-    const orderedHighlighters =
-      settings.highlighterOrder.length > 0
-        ? settings.highlighterOrder
-        : Object.keys(settings.highlighters);
+    const orderedHighlighters = getActiveHighlighters(settings);
     orderedHighlighters.forEach((highlighter) => {
       submenu?.addItem((highlighterItem) => {
         const menuItem = highlighterItem as unknown as ContextMenuItem;

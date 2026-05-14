@@ -4,7 +4,6 @@ import {
   Coords,
   EnhancedApp,
   EnhancedEditor,
-  EnhancedMenu,
 } from "../settings/types";
 
 const highlighterMenu = (
@@ -14,14 +13,18 @@ const highlighterMenu = (
 ): void => {
   if (editor && editor.hasFocus()) {
     const cursor = editor.getCursor("from");
-    let coords: Coords;
+    let coords: Coords | null = null;
 
-const menu = new Menu() as EnhancedMenu;
+    const menu = new Menu();
+    const menuWithNativeToggle = menu as Menu & {
+      setUseNativeMenu?: (useNativeMenu: boolean) => Menu;
+      dom?: HTMLElement;
+    };
 
-    menu.setUseNativeMenu(false);
+    menuWithNativeToggle.setUseNativeMenu?.(false);
 
-    const menuDom = menu.dom;
-    menuDom.addClass("highlighterContainer");
+    const menuDom = menuWithNativeToggle.dom;
+    menuDom?.addClass("highlighterContainer");
 
     settings.highlighterOrder.forEach((highlighter) => {
       menu.addItem((highlighterItem) => {
@@ -44,6 +47,10 @@ const menu = new Menu() as EnhancedMenu;
       const offset = editor.posToOffset(cursor);
       coords = editor.cm.coordsAtPos?.(offset) ?? editor.coordsAtPos(offset);
     } else {
+      return;
+    }
+
+    if (!coords) {
       return;
     }
 

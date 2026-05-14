@@ -5,11 +5,152 @@ import {
   PluginSettingTab,
   Notice,
   TextComponent,
+  Modal,
+  TFile,
 } from "obsidian";
 import Pickr from "@simonwep/pickr";
 import Sortable from "sortablejs";
 import { HIGHLIGHTER_METHODS, HIGHLIGHTER_STYLES, createDefaultHighlighterClass } from "./settingsData";
 import { setAttributes } from "../utils/setAttributes";
+
+class DeleteHighlighterModal extends Modal {
+  private readonly onSubmit: (confirmed: boolean) => void;
+  private resolved = false;
+
+  constructor(app: App, onSubmit: (confirmed: boolean) => void) {
+    super(app);
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("p", {
+      text: "This action will permanently remove the highlight color. In the future, using the same color name for a new highlight color may create a conflict.",
+    });
+    const controls = contentEl.createDiv();
+    new Setting(controls)
+      .addButton((button) => {
+        button.setButtonText("Cancel").onClick(() => {
+          this.resolved = true;
+          this.onSubmit(false);
+          this.close();
+        });
+      })
+      .addButton((button) => {
+        button.setButtonText("OK").setCta().onClick(() => {
+          this.resolved = true;
+          this.onSubmit(true);
+          this.close();
+        });
+      });
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    if (!this.resolved) {
+      this.onSubmit(false);
+    }
+  }
+}
+
+type ConflictAction = "rename" | "reuse-without-migration" | "reuse-with-migration";
+
+type ClassConflictSummary = {
+  classToken: string;
+  totalMarks: number;
+  fileCount: number;
+  inlineColorCounts: Record<string, number>;
+  topFiles: Array<{ path: string; marks: number }>;
+};
+
+class HighlighterClassConflictModal extends Modal {
+  private readonly summary: ClassConflictSummary;
+  private readonly colorName: string;
+  private readonly targetColorHex: string;
+  private readonly onSubmit: (action: ConflictAction) => void;
+  private resolved = false;
+
+  constructor(
+    app: App,
+    summary: ClassConflictSummary,
+    colorName: string,
+    targetColorHex: string,
+    onSubmit: (action: ConflictAction) => void,
+  ) {
+    super(app);
+    this.summary = summary;
+    this.colorName = colorName;
+    this.targetColorHex = targetColorHex;
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Potential highlight class conflict" });
+    contentEl.createEl("p", {
+      text: `A highlight class conflict was found for ${this.colorName}: ${this.summary.classToken}.`,
+    });
+    contentEl.createEl("p", {
+      text: `Found ${this.summary.totalMarks} matching mark(s) in ${this.summary.fileCount} file(s). New color value: ${this.targetColorHex}.`,
+    });
+
+    const colorsFound = Object.keys(this.summary.inlineColorCounts).map((color) => ({
+      color,
+      count: this.summary.inlineColorCounts[color],
+    }));
+    if (colorsFound.length > 0) {
+      const details = contentEl.createEl("ul");
+      colorsFound.forEach((entry) => {
+        details.createEl("li", { text: `${entry.color}: ${entry.count}` });
+      });
+    }
+
+    if (this.summary.topFiles.length > 0) {
+      contentEl.createEl("p", { text: "Top impacted files:" });
+      const fileDetails = contentEl.createEl("ul");
+      this.summary.topFiles.forEach((entry) => {
+        fileDetails.createEl("li", { text: `${entry.path} (${entry.marks})` });
+      });
+    }
+
+    contentEl.createEl("p", {
+      text: "Do you wish to overwrite highlight colors using the same name or choose a different highlight color name to keep both colors?",
+    });
+
+    const controls = contentEl.createDiv();
+    new Setting(controls)
+      .addButton((button) => {
+        button.setButtonText("Choose different name").onClick(() => {
+          this.resolved = true;
+          this.onSubmit("rename");
+          this.close();
+        });
+      })
+      .addButton((button) => {
+        button.setButtonText("Reuse without migration").onClick(() => {
+          this.resolved = true;
+          this.onSubmit("reuse-without-migration");
+          this.close();
+        });
+      })
+      .addButton((button) => {
+        button.setButtonText("Reuse and migrate").setCta().onClick(() => {
+          this.resolved = true;
+          this.onSubmit("reuse-with-migration");
+          this.close();
+        });
+      });
+  }
+
+  onClose() {
+    this.contentEl.empty();
+    if (!this.resolved) {
+      this.onSubmit("rename");
+    }
+  }
+}
 
 export class HighlightrSettingTab extends PluginSettingTab {
   plugin: HighlightrPlugin;
@@ -17,6 +158,117 @@ export class HighlightrSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: HighlightrPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  private getActiveHighlighters(): string[] {
+    const ordered = this.plugin.settings.highlighterOrder.length > 0
+      ? this.plugin.settings.highlighterOrder
+      : Object.keys(this.plugin.settings.highlighters);
+    return ordered.filter((highlighter) => this.plugin.settings.highlighterActivity?.[highlighter] !== false);
+  }
+
+  private getInactiveHighlighters(): string[] {
+    const ordered = this.plugin.settings.highlighterOrder.length > 0
+      ? this.plugin.settings.highlighterOrder
+      : Object.keys(this.plugin.settings.highlighters);
+    return ordered.filter((highlighter) => this.plugin.settings.highlighterActivity?.[highlighter] === false);
+  }
+
+  private async confirmPermanentDeletion(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const modal = new DeleteHighlighterModal(this.app, (confirmed) => resolve(confirmed));
+      modal.open();
+    });
+  }
+
+  private getClassTokens(markTag: string): string[] {
+    const classMatch = markTag.match(/\bclass\s*=\s*(["'])(.*?)\1/i);
+    if (!classMatch || !classMatch[2]) {
+      return [];
+    }
+    return classMatch[2]
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0);
+  }
+
+  private getInlineHltrColor(markTag: string): string | null {
+    const styleMatch = markTag.match(/\bstyle\s*=\s*(["'])(.*?)\1/i);
+    if (!styleMatch || !styleMatch[2]) {
+      return null;
+    }
+    const colorMatch = styleMatch[2].match(/--hltr-color\s*:\s*([^;]+)/i);
+    return colorMatch?.[1]?.trim() ?? null;
+  }
+
+  private async scanClassConflictSummary(classToken: string): Promise<ClassConflictSummary> {
+    const files = this.app.vault.getMarkdownFiles();
+    let totalMarks = 0;
+    let fileCount = 0;
+    const inlineColorCounts: Record<string, number> = {};
+    const fileMatches: Array<{ path: string; marks: number }> = [];
+
+    for (const file of files) {
+      const content = await this.app.vault.read(file);
+      const markTags = content.match(/<mark\b[^>]*>/gi) ?? [];
+      let fileMatchCount = 0;
+
+      markTags.forEach((markTag) => {
+        const classTokens = this.getClassTokens(markTag);
+        if (classTokens.indexOf(classToken) === -1) {
+          return;
+        }
+        fileMatchCount += 1;
+        totalMarks += 1;
+        const color = this.getInlineHltrColor(markTag);
+        if (!color) {
+          return;
+        }
+        inlineColorCounts[color] = (inlineColorCounts[color] ?? 0) + 1;
+      });
+
+      if (fileMatchCount > 0) {
+        fileCount += 1;
+        fileMatches.push({ path: file.path, marks: fileMatchCount });
+      }
+    }
+
+    const topFiles = fileMatches
+      .sort((a, b) => b.marks - a.marks)
+      .slice(0, 5);
+
+    return {
+      classToken,
+      totalMarks,
+      fileCount,
+      inlineColorCounts,
+      topFiles,
+    };
+  }
+
+  private async confirmClassConflict(
+    summary: ClassConflictSummary,
+    colorName: string,
+    targetColorHex: string,
+  ): Promise<ConflictAction> {
+    return new Promise((resolve) => {
+      const modal = new HighlighterClassConflictModal(
+        this.app,
+        summary,
+        colorName,
+        targetColorHex,
+        (action) => resolve(action),
+      );
+      modal.open();
+    });
+  }
+
+  private async setHighlighterActivity(highlighter: string, active: boolean): Promise<void> {
+    this.plugin.settings.highlighterActivity[highlighter] = active;
+    await this.plugin.saveSettings();
+    window.setTimeout(() => {
+      dispatchEvent(new Event("Highlightr-NewCommand"));
+    }, 100);
   }
 
   private getHighlighterHotkeyLabel(highlighter: string): string | null {
@@ -48,6 +300,173 @@ export class HighlightrSettingTab extends PluginSettingTab {
     const key = firstHotkey.key ?? "";
     const parts = [...modifiers, key].filter(Boolean);
     return parts.length ? parts.join("+") : null;
+  }
+
+  private removeHighlighterCommand(highlighter: string): void {
+    const appWithCommands = this.app as App & {
+      commands?: {
+        removeCommand?: (commandId: string) => void;
+      };
+    };
+    appWithCommands.commands?.removeCommand?.(`highlightr-plugin:${highlighter}`);
+  }
+
+  private async handleDeleteHighlighter(highlighter: string, isActive: boolean): Promise<void> {
+    if (isActive) {
+      await this.setHighlighterActivity(highlighter, false);
+      this.removeHighlighterCommand(highlighter);
+      new Notice(`${highlighter} highlight moved to inactive`);
+      this.display();
+      return;
+    }
+
+    const confirmed = await this.confirmPermanentDeletion();
+    if (!confirmed) {
+      return;
+    }
+
+    this.removeHighlighterCommand(highlighter);
+    delete this.plugin.settings.highlighters[highlighter];
+    delete this.plugin.settings.highlighterClasses[highlighter];
+    delete this.plugin.settings.highlighterActivity[highlighter];
+    this.plugin.settings.highlighterOrder.remove(highlighter);
+    await this.plugin.saveSettings();
+    window.setTimeout(() => {
+      dispatchEvent(new Event("Highlightr-NewCommand"));
+    }, 100);
+    new Notice(`${highlighter} highlight permanently deleted`);
+    this.display();
+  }
+
+  private async migrateClassHighlights(
+    classToken: string,
+    targetColorHex: string,
+  ): Promise<{ fileCount: number; updatedMarks: number }> {
+    const files = this.app.vault.getMarkdownFiles();
+    let fileCount = 0;
+    let updatedMarks = 0;
+
+    for (const file of files) {
+      const content = await this.app.vault.read(file);
+      let fileUpdatedMarks = 0;
+      const replaced = content.replace(/<mark\b[^>]*>/gi, (markTag) => {
+        const classTokens = this.getClassTokens(markTag);
+        if (classTokens.indexOf(classToken) === -1) {
+          return markTag;
+        }
+
+        fileUpdatedMarks += 1;
+        const styleMatch = markTag.match(/\bstyle\s*=\s*(["'])(.*?)\1/i);
+        if (!styleMatch) {
+          const insertAt = markTag.endsWith(">") ? markTag.length - 1 : markTag.length;
+          return `${markTag.slice(0, insertAt)} style="--hltr-color: ${targetColorHex};"${markTag.slice(insertAt)}`;
+        }
+
+        const quote = styleMatch[1];
+        const styleValue = styleMatch[2];
+        let nextStyleValue = styleValue;
+
+        if (/--hltr-color\s*:/i.test(styleValue)) {
+          nextStyleValue = styleValue.replace(/--hltr-color\s*:\s*[^;]+/i, `--hltr-color: ${targetColorHex}`);
+        } else {
+          const separator = styleValue.trim().length === 0 || styleValue.trim().endsWith(";") ? "" : ";";
+          nextStyleValue = `${styleValue}${separator} --hltr-color: ${targetColorHex};`;
+        }
+
+        return markTag.replace(styleMatch[0], `style=${quote}${nextStyleValue}${quote}`);
+      });
+
+      if (fileUpdatedMarks > 0 && replaced !== content) {
+        await this.app.vault.modify(file as TFile, replaced);
+        fileCount += 1;
+        updatedMarks += fileUpdatedMarks;
+      }
+    }
+
+    return { fileCount, updatedMarks };
+  }
+
+  private async saveHighlighter(
+    colorName: string,
+    colorHex: string,
+    className: string,
+  ): Promise<void> {
+    const existingIndex = this.plugin.settings.highlighterOrder.indexOf(colorName);
+    if (existingIndex === -1) {
+      this.plugin.settings.highlighterOrder.push(colorName);
+    }
+    this.plugin.settings.highlighters[colorName] = colorHex;
+    this.plugin.settings.highlighterClasses[colorName] = className;
+    this.plugin.settings.highlighterActivity[colorName] = true;
+    window.setTimeout(() => {
+      dispatchEvent(new Event("Highlightr-NewCommand"));
+    }, 100);
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private renderHighlighterItem(container: HTMLElement, highlighter: string, isActive: boolean): void {
+    const settingItem = container.createEl("div");
+    settingItem.addClass("highlighter-item-draggable");
+    const colorIcon = settingItem.createEl("span");
+    colorIcon.addClass("highlighter-setting-icon");
+    const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgIcon.setAttribute("viewBox", "0 0 24 24");
+    svgIcon.setAttribute("fill", this.plugin.settings.highlighters[highlighter]);
+    svgIcon.setAttribute("stroke", this.plugin.settings.highlighters[highlighter]);
+    svgIcon.setAttribute("stroke-width", "0");
+    svgIcon.setAttribute("stroke-linecap", "round");
+    svgIcon.setAttribute("stroke-linejoin", "round");
+    const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    svgPath.setAttribute("d", "M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z");
+    svgIcon.appendChild(svgPath);
+    colorIcon.appendChild(svgIcon);
+
+    const highlighterClassName = this.plugin.settings.highlighterClasses?.[highlighter] || createDefaultHighlighterClass(highlighter);
+    const highlighterSettingItem = new Setting(settingItem)
+      .setClass("highlighter-setting-item")
+      .setName(highlighter)
+      .setDesc(this.plugin.settings.highlighters[highlighter]);
+
+    highlighterSettingItem.infoEl.createEl("div", {
+      cls: "highlighter-setting-classname",
+      text: `class="hltr-${highlighterClassName.toLowerCase()}"`,
+    });
+
+    const hotkeyLabel = this.getHighlighterHotkeyLabel(highlighter);
+    if (hotkeyLabel) {
+      highlighterSettingItem.infoEl.createEl("div", {
+        cls: "highlighter-setting-hotkey",
+        text: hotkeyLabel,
+      });
+    }
+
+    if (!isActive) {
+      highlighterSettingItem
+        .addButton((button) => {
+          button
+            .setClass("HighlightrSettingsButton")
+            .setIcon("highlightr-add")
+            .setTooltip("Reactivate")
+            .onClick(async () => {
+              await this.setHighlighterActivity(highlighter, true);
+              new Notice(`${highlighter} highlight reactivated`);
+              this.display();
+            });
+        });
+    }
+
+    highlighterSettingItem
+      .addButton((button) => {
+        button
+          .setClass("HighlightrSettingsButton")
+          .setClass("HighlightrSettingsButtonDelete")
+          .setIcon("highlightr-delete")
+          .setTooltip("Remove")
+          .onClick(async () => {
+            await this.handleDeleteHighlighter(highlighter, isActive);
+          });
+      });
   }
 
   display(): void {
@@ -165,9 +584,10 @@ export class HighlightrSettingTab extends PluginSettingTab {
       .then(() => {
         let input = valueInput.inputEl;
 
-        const colorMap = this.plugin.settings.highlighterOrder.map(
-          (highlightKey) => this.plugin.settings.highlighters[highlightKey]
-        );
+    const colorMap = this.plugin.settings.highlighterOrder
+      .map((highlightKey) => this.plugin.settings.highlighters[highlightKey])
+      .filter((value) => typeof value === "string" && value.length > 0);
+
 
         let colorHex;
         let pickrCreate = new Pickr({
@@ -248,21 +668,30 @@ export class HighlightrSettingTab extends PluginSettingTab {
             let value = valueInput.inputEl.value;
 
             if (color && value) {
-              if (this.plugin.settings.highlighterOrder.indexOf(color) === -1) {
-                this.plugin.settings.highlighterOrder.push(color);
-                this.plugin.settings.highlighters[color] = value;
-                this.plugin.settings.highlighterClasses[color] = customClass || createDefaultHighlighterClass(color);
-                window.setTimeout(() => {
-                  dispatchEvent(new Event("Highlightr-NewCommand"));
-                }, 100);
-                await this.plugin.saveSettings();
-                this.display();
-                return;
-              } else {
-                buttonEl.stopImmediatePropagation();
-                new Notice("This color already exists");
+              const existingIndex = this.plugin.settings.highlighterOrder.indexOf(color);
+              if (existingIndex === -1 || this.plugin.settings.highlighterActivity?.[color] === false) {
+                const className = customClass || createDefaultHighlighterClass(color);
+                const classToken = `hltr-${className.toLowerCase()}`;
+                if (this.plugin.settings.highlighterMethods === "css-classes") {
+                  const summary = await this.scanClassConflictSummary(classToken);
+                  if (summary.totalMarks > 0) {
+                    const action = await this.confirmClassConflict(summary, color, value);
+                    if (action === "rename") {
+                      new Notice("Choose a different highlight name or class to keep both colors.");
+                      return;
+                    }
+                    if (action === "reuse-with-migration") {
+                      const migration = await this.migrateClassHighlights(classToken, value);
+                      new Notice(`Updated ${migration.updatedMarks} highlight(s) across ${migration.fileCount} file(s).`);
+                    }
+                  }
+                }
+                await this.saveHighlighter(color, value, className);
                 return;
               }
+              buttonEl.stopImmediatePropagation();
+              new Notice("This color already exists");
+              return;
             }
             color && !value
               ? new Notice("Highlighter hex code missing")
@@ -272,11 +701,14 @@ export class HighlightrSettingTab extends PluginSettingTab {
           });
       });
 
-    const highlightersContainer = containerEl.createEl("div", {
+    const activeHeader = containerEl.createEl("h2", { text: "Active highlight colors" });
+    activeHeader.addClass("highlightr-section-heading");
+
+    const activeContainer = containerEl.createEl("div", {
       cls: "HighlightrSettingsTabsContainer",
     });
 
-    Sortable.create(highlightersContainer, {
+    Sortable.create(activeContainer, {
       animation: 500,
       ghostClass: "highlighter-sortable-ghost",
       chosenClass: "highlighter-sortable-chosen",
@@ -291,80 +723,40 @@ export class HighlightrSettingTab extends PluginSettingTab {
         if (oldIndex == null || newIndex == null) {
           return;
         }
-        const arrayResult = this.plugin.settings.highlighterOrder;
-        const [removed] = arrayResult.splice(oldIndex, 1);
-        arrayResult.splice(newIndex, 0, removed);
-        this.plugin.settings.highlighterOrder = arrayResult;
+        const active = this.getActiveHighlighters();
+        const moved = active[oldIndex];
+        const anchor = active[newIndex];
+        if (!moved || !anchor) {
+          return;
+        }
+
+        const order = [...this.plugin.settings.highlighterOrder];
+        const from = order.indexOf(moved);
+        const to = order.indexOf(anchor);
+        if (from === -1 || to === -1) {
+          return;
+        }
+
+        order.splice(from, 1);
+        order.splice(to, 0, moved);
+        this.plugin.settings.highlighterOrder = order;
         this.plugin.saveSettings();
       },
     });
 
-    this.plugin.settings.highlighterOrder.forEach((highlighter) => {
-      const settingItem = highlightersContainer.createEl("div");
-      settingItem.addClass("highlighter-item-draggable");
-      const colorIcon = settingItem.createEl("span");
-      colorIcon.addClass("highlighter-setting-icon");
-      const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svgIcon.setAttribute("viewBox", "0 0 24 24");
-      svgIcon.setAttribute("fill", this.plugin.settings.highlighters[highlighter]);
-      svgIcon.setAttribute("stroke", this.plugin.settings.highlighters[highlighter]);
-      svgIcon.setAttribute("stroke-width", "0");
-      svgIcon.setAttribute("stroke-linecap", "round");
-      svgIcon.setAttribute("stroke-linejoin", "round");
-      const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      svgPath.setAttribute("d", "M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z");
-      svgIcon.appendChild(svgPath);
-      colorIcon.appendChild(svgIcon);
+    this.getActiveHighlighters().forEach((highlighter) => {
+      this.renderHighlighterItem(activeContainer, highlighter, true);
+    });
 
-      const highlighterClassName = this.plugin.settings.highlighterClasses?.[highlighter] || createDefaultHighlighterClass(highlighter);
-      const highlighterSettingItem = new Setting(settingItem)
-        .setClass("highlighter-setting-item")
-        .setName(highlighter)
-        .setDesc(this.plugin.settings.highlighters[highlighter]);
+    const inactiveHeader = containerEl.createEl("h2", { text: "Inactive highlight colors" });
+    inactiveHeader.addClass("highlightr-section-heading");
 
-      highlighterSettingItem.infoEl.createEl("div", {
-        cls: "highlighter-setting-classname",
-        text: `class="hltr-${highlighterClassName.toLowerCase()}"`,
-      });
+    const inactiveContainer = containerEl.createEl("div", {
+      cls: "HighlightrSettingsTabsContainer",
+    });
 
-      const hotkeyLabel = this.getHighlighterHotkeyLabel(highlighter);
-      if (hotkeyLabel) {
-        highlighterSettingItem.infoEl.createEl("div", {
-          cls: "highlighter-setting-hotkey",
-          text: hotkeyLabel,
-        });
-      }
-
-      highlighterSettingItem
-        .addButton((button) => {
-          button
-            .setClass("HighlightrSettingsButton")
-            .setClass("HighlightrSettingsButtonDelete")
-            .setIcon("highlightr-delete")
-            .setTooltip("Remove")
-            .onClick(async () => {
-              new Notice(`${highlighter} highlight deleted`);
-              const appWithCommands = this.app as App & {
-                commands?: {
-                  removeCommand?: (commandId: string) => void;
-                };
-              };
-              appWithCommands.commands?.removeCommand?.(
-                `highlightr-plugin:${highlighter}`
-              );
-              delete this.plugin.settings.highlighters[highlighter];
-              delete this.plugin.settings.highlighterClasses[highlighter];
-              this.plugin.settings.highlighterOrder.remove(highlighter);
-              window.setTimeout(() => {
-                dispatchEvent(new Event("Highlightr-NewCommand"));
-              }, 100);
-              await this.plugin.saveSettings();
-              this.display();
-            });
-        });
-
-      const a = createEl("a");
-      a.setAttribute("href", "");
+    this.getInactiveHighlighters().forEach((highlighter) => {
+      this.renderHighlighterItem(inactiveContainer, highlighter, false);
     });
     const hltrDonationDiv = containerEl.createEl("div", {
       cls: "hltrDonationSection",

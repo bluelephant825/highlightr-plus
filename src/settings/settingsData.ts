@@ -16,6 +16,10 @@ export interface HighlighterClasses {
   [color: string]: string;
 }
 
+export interface HighlighterActivity {
+  [color: string]: boolean;
+}
+
 export function createDefaultHighlighterClass(colorName: string): string {
   return colorName
     .trim()
@@ -29,6 +33,7 @@ export interface HighlightrSettings {
   highlighterMethods: string;
   highlighters: Highlighters;
   highlighterClasses: HighlighterClasses;
+  highlighterActivity: HighlighterActivity;
   highlighterOrder: string[];
 }
 
@@ -47,12 +52,14 @@ const DEFAULT_SETTINGS: HighlightrSettings = {
     Grey: "#CACFD9A6",
   },
   highlighterClasses: {},
+  highlighterActivity: {},
   highlighterOrder: [],
 };
 
 DEFAULT_SETTINGS.highlighterOrder = Object.keys(DEFAULT_SETTINGS.highlighters);
 DEFAULT_SETTINGS.highlighterOrder.forEach((highlighter) => {
   DEFAULT_SETTINGS.highlighterClasses[highlighter] = createDefaultHighlighterClass(highlighter);
+  DEFAULT_SETTINGS.highlighterActivity[highlighter] = true;
 });
 
 export default DEFAULT_SETTINGS;
