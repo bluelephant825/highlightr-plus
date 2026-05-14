@@ -10,6 +10,7 @@ jobs:
     permissions:
       id-token: write # Required for generating the attestation token
       contents: write # Required for creating/uploading release assets
+      attestations: write # Required for creating artifact attestations
 
     steps:
       - name: Checkout repository
@@ -26,59 +27,21 @@ jobs:
       - name: Build plugin
         run: npm run build
 
-      # Define the common parameters to keep things organized
-      - name: Define Attestation Parameters
-        id: params
-        run: |
-          echo "build-type=obsidian-plugin-release" >> $GITHUB_OUTPUT
-          echo "repo-url=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_OUTPUT
-          echo "workflow-run-id=${{ github.run_id }}" >> $GITHUB_OUTPUT
-
-      # Generate attestations for each asset
-      - name: Generate Attestation for manifest.json
-        uses: github/actions/artifact-attestation/create-attestation@v1
+      - name: Generate artifact attestation for manifest.json
+        uses: actions/attest@v4
         with:
-          artifact-path: 'manifest.json'
-          artifact-name: 'manifest.json'
-          build-type: ${{ steps.params.outputs.build-type }}
-          repo-url: ${{ steps.params.outputs.repo-url }}
-          workflow-run-id: ${{ steps.params.outputs.workflow-run-id }}
+          subject-path: 'manifest.json'
 
-      - name: Generate Attestation for main.js
-        uses: github/actions/artifact-attestation/create-attestation@v1
+      - name: Generate artifact attestation for main.js
+        uses: actions/attest@v4
         with:
-          artifact-path: 'main.js'
-          artifact-name: 'main.js'
-          build-type: ${{ steps.params.outputs.build-type }}
-          repo-url: ${{ steps.params.outputs.repo-url }}
-          workflow-run-id: ${{ steps.params.outputs.workflow-run-id }}
+          subject-path: 'main.js'
 
-      - name: Generate Attestation for styles.css
-        uses: github/actions/artifact-attestation/create-attestation@v1
+      - name: Generate artifact attestation for styles.css
+        uses: actions/attest@v4
         with:
-          artifact-path: 'styles.css'
-          artifact-name: 'styles.css'
-          build-type: ${{ steps.params.outputs.build-type }}
-          repo-url: ${{ steps.params.outputs.repo-url }}
-          workflow-run-id: ${{ steps.params.outputs.workflow-run-id }}
+          subject-path: 'styles.css'
 
-      # Upload the attestations to the release
-      - name: Upload manifest.json Attestation
-        uses: github/actions/artifact-attestation/upload-attestation@v1
-        with:
-          attestation-name: 'attestation-manifest.json'
-
-      - name: Upload main.js Attestation
-        uses: github/actions/artifact-attestation/upload-attestation@v1
-        with:
-          attestation-name: 'attestation-main.js'
-
-      - name: Upload styles.css Attestation
-        uses: github/actions/artifact-attestation/upload-attestation@v1
-        with:
-          attestation-name: 'attestation-styles.css'
-
-      # Upload the assets to the release
       - name: Upload release assets
         run: |
           gh release upload ${{ github.event.release.tag_name }} manifest.json main.js styles.css
