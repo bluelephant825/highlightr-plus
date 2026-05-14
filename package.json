@@ -1,6 +1,6 @@
 {
   "name": "highlightr-plus",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Highlightr+ is a plugin that adds a simple highlighting modal for better multi-colored highlighting support 🎨.",
   "type": "module",
   "main": "main.js",
