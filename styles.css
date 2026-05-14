@@ -132,15 +132,62 @@
   box-decoration-break: clone;
 }
 
-.highlightr-realistic
-  .cm-s-obsidian
-  .cm-highlight
-  + span.cm-formatting-highlight {
-  margin: 0 -0.05em 0 0;
-  padding: 0.15em 0.25em;
-  border-radius: 0 0.3em 0.8em 0;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
+.highlightr-annotation-modal {
+  width: 500px;
+  height: 500px;
+  max-width: 500px;
+  max-height: 500px;
+}
+
+.highlightr-annotation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.highlightr-annotation-label {
+  font-weight: 600;
+}
+
+.highlightr-annotation-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 280px;
+}
+
+.highlightr-annotation-input {
+  width: 100%;
+}
+
+.highlightr-annotation-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.highlightr-style-demo {
+  font-size: 0.925em;
+  margin-top: 12px;
+}
+
+.note-bubble {
+  position: absolute;
+  background-color: #ccc;
+  border: 1px solid #aaa;
+  padding: 5px;
+  z-index: 1000;
+  max-width: 300px;
+  height: auto;
+  overflow-wrap: break-word;
+  border-radius: 8px;
+}
+
+mark[class*="hltr-"],
+.cm-highlight[class*="hltr-"],
+.markdown-preview-view mark[class*="hltr-"] {
+  background-color: var(--hltr-color) !important;
 }
 
 /**/

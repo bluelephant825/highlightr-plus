@@ -1,17 +1,23 @@
-export function debounce(func: any, wait?: number, immediate?: boolean) {
-  let timeout: number;
+export function debounce<T extends (...args: unknown[]) => unknown>(func: T, wait: number = 0, immediate: boolean = false) {
+  let timeout: number | null = null;
 
-  return function executedFunction() {
-    let context = this;
-    let args = arguments;
+  return function executedFunction(this: unknown, ...args: Parameters<T>) {
+    const context = this;
 
-    let later = function () {
+    const later = () => {
       timeout = null;
-      if (!immediate) func.apply(context, args);
+      if (!immediate) {
+        func.apply(context, args);
+      }
     };
-    let callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = +setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
+
+    const callNow = immediate && timeout === null;
+    if (timeout !== null) {
+      window.clearTimeout(timeout);
+    }
+    timeout = window.setTimeout(later, wait) as unknown as number;
+    if (callNow) {
+      func.apply(context, args);
+    }
   };
 }

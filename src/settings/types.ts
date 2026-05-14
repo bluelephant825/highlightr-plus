@@ -10,13 +10,20 @@ export interface Coords {
 export type EnhancedMenu = Menu & { dom: HTMLElement };
 
 export type EnhancedApp = App & {
-  commands: { executeCommandById: Function };
+  commands: { executeCommandById: (commandId: string) => void };
+  workspace: App["workspace"] & {
+    activeDocument?: Document | null;
+  };
 };
 
 export type EnhancedEditor = Editor & {
-  cursorCoords: Function;
-  coordsAtPos: Function;
-  cm: CodeMirror.Editor & { coordsAtPos: Function };
-  hasFocus: Function;
-  getSelection: Function;
+  cursorCoords?: (where?: boolean, mode?: "window" | "local") => Coords | null;
+  coordsAtPos?: (offset: number) => Coords | null;
+  posToOffset?: (pos: { line: number; ch: number }) => number;
+  offsetToPos?: (offset: number) => { line: number; ch: number };
+  cm: CodeMirror.Editor & {
+    posAtCoords?: (coords: { x: number; y: number }) => number | { pos: number } | null;
+    coordsAtPos?: (offset: number) => Coords | null;
+  };
+  hasFocus: () => boolean;
 };

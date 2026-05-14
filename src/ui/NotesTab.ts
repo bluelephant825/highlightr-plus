@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, setIcon } from "obsidian";
 import HighlightrPlugin from "../plugin/main";
+import { EnhancedApp } from "../settings/types";
 
 export const NOTES_VIEW_TYPE = "highlightr-notes-view";
 
@@ -14,6 +15,11 @@ export class NotesTab extends ItemView {
         this.plugin = plugin;
     }
 
+    private getActiveDocument(): Document {
+        const app = this.app as EnhancedApp;
+        return app.workspace.activeDocument ?? document;
+    }
+
     getViewType(): string {
         return NOTES_VIEW_TYPE;
     }
@@ -24,6 +30,26 @@ export class NotesTab extends ItemView {
 
     getIcon(): string {
         return "sticky-note"; // Uses a sticky-note icon
+    }
+
+    private resolveColorFromClass(cssClass: string | null): string | null {
+        if (!cssClass) {
+            return null;
+        }
+
+        const settings = this.plugin.settings;
+        for (const highlighterKey of settings.highlighterOrder) {
+            const configuredClass = settings.highlighterClasses?.[highlighterKey];
+            if (!configuredClass) {
+                continue;
+            }
+
+            if (`hltr-${configuredClass.toLowerCase()}` === cssClass) {
+                return settings.highlighters[highlighterKey] ?? null;
+            }
+        }
+
+        return null;
     }
 
     private async updateNotesList(container: HTMLDivElement): Promise<void> {
@@ -129,14 +155,16 @@ export class NotesTab extends ItemView {
     }
 
     private decodeHtmlEntities(text: string): string {
-        const textarea = document.createElement('textarea');
-        textarea.innerHTML = text;
-        return textarea.value;
+        const parser = new DOMParser();
+        const parsed = parser.parseFromString(text, 'text/html');
+        return parsed.documentElement.textContent ?? '';
     }
 
     private appendSanitized(node: Node, target: HTMLElement): void {
+        const doc = this.getActiveDocument();
+
         if (node.nodeType === Node.TEXT_NODE) {
-            target.appendChild(document.createTextNode(node.textContent ?? ''));
+            target.appendChild(doc.createTextNode(node.textContent ?? ''));
             return;
         }
 
@@ -148,7 +176,7 @@ export class NotesTab extends ItemView {
         const tagName = element.tagName.toLowerCase();
 
         if (tagName === 'sub' || tagName === 'sup') {
-            const safeElement = document.createElement(tagName);
+            const safeElement = doc.createElement(tagName);
             Array.from(element.childNodes).forEach((child) => this.appendSanitized(child, safeElement));
             target.appendChild(safeElement);
             return;
@@ -158,15 +186,16 @@ export class NotesTab extends ItemView {
     }
 
     private renderHighlightText(container: HTMLElement, text: string): void {
-        const template = document.createElement('template');
-        template.innerHTML = text;
-        Array.from(template.content.childNodes).forEach((node) => this.appendSanitized(node, container));
+        const parser = new DOMParser();
+        const parsed = parser.parseFromString(text, 'text/html');
+        Array.from(parsed.body.childNodes).forEach((node) => this.appendSanitized(node, container));
     }
 
     private renderNoteText(container: HTMLElement, text: string): void {
         const decodedText = this.decodeHtmlEntities(text);
         const lines = decodedText.split(/\r?\n/);
         let index = 0;
+        const doc = this.getActiveDocument();
 
         while (index < lines.length) {
             const line = lines[index].trim();
@@ -179,7 +208,7 @@ export class NotesTab extends ItemView {
             const numberedMatch = line.match(/^\d+[.)]\s+(.+)$/);
 
             if (bulletMatch || numberedMatch) {
-                const listEl = document.createElement(numberedMatch ? 'ol' : 'ul');
+                const listEl = doc.createElement(numberedMatch ? 'ol' : 'ul');
 
                 while (index < lines.length) {
                     const currentLine = lines[index].trim();
@@ -192,7 +221,7 @@ export class NotesTab extends ItemView {
                     const currentNumberedMatch = currentLine.match(/^\d+[.)]\s+(.+)$/);
 
                     if (numberedMatch && currentNumberedMatch) {
-                        const listItem = document.createElement('li');
+                        const listItem = doc.createElement('li');
                         this.renderHighlightText(listItem, currentNumberedMatch[1]);
                         listEl.appendChild(listItem);
                         index += 1;
@@ -200,7 +229,7 @@ export class NotesTab extends ItemView {
                     }
 
                     if (bulletMatch && currentBulletMatch) {
-                        const listItem = document.createElement('li');
+                        const listItem = doc.createElement('li');
                         this.renderHighlightText(listItem, currentBulletMatch[1]);
                         listEl.appendChild(listItem);
                         index += 1;
@@ -214,7 +243,7 @@ export class NotesTab extends ItemView {
                 continue;
             }
 
-            const lineEl = document.createElement('div');
+            const lineEl = doc.createElement('div');
             this.renderHighlightText(lineEl, line);
             container.appendChild(lineEl);
             index += 1;
@@ -265,6 +294,10 @@ export class NotesTab extends ItemView {
                 textEl.style.background = color;
             } else if (cssClass) {
                 textEl.addClass(cssClass);
+                const resolvedClassColor = this.resolveColorFromClass(cssClass);
+                if (resolvedClassColor) {
+                    textEl.style.background = resolvedClassColor;
+                }
             }
             this.renderHighlightText(textEl, text);
 

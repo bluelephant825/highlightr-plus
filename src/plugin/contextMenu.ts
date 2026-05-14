@@ -30,6 +30,14 @@ interface ParsedMark {
   tags: string;
 }
 
+type ContextMenuItem = {
+  dom?: HTMLElement;
+  setSubmenu?: () => Menu & { setUseNativeMenu?: (useNativeMenu: boolean) => Menu };
+  setTitle?: (title: string) => unknown;
+  setIcon?: (icon: string) => unknown;
+  onClick?: (handler: () => void) => unknown;
+};
+
 interface AnnotationResult {
   note: string;
   tags: string;
@@ -63,39 +71,28 @@ class AnnotationModal extends Modal {
   }
 
   onOpen() {
-    this.modalEl.style.width = "500px";
-    this.modalEl.style.height = "500px";
-    this.modalEl.style.maxWidth = "500px";
-    this.modalEl.style.maxHeight = "500px";
+    this.modalEl.classList.add("highlightr-annotation-modal");
 
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.style.display = "flex";
-    contentEl.style.flexDirection = "column";
-    contentEl.style.gap = "8px";
-    contentEl.style.height = "100%";
+    contentEl.classList.add("highlightr-annotation-content");
 
     const noteLabel = contentEl.createEl("label", { text: "Annotation:" });
-    noteLabel.style.fontWeight = "600";
+    noteLabel.classList.add("highlightr-annotation-label");
 
     const noteArea = contentEl.createEl("textarea");
     noteArea.value = this.initialNote;
-    noteArea.style.width = "100%";
-    noteArea.style.flex = "1";
-    noteArea.style.minHeight = "280px";
+    noteArea.classList.add("highlightr-annotation-textarea");
 
     const tagsLabel = contentEl.createEl("label", { text: "Tags:" });
-    tagsLabel.style.fontWeight = "600";
+    tagsLabel.classList.add("highlightr-annotation-label");
 
     const tagsInput = contentEl.createEl("input", { type: "text" });
     tagsInput.value = this.initialTags;
-    tagsInput.style.width = "100%";
+    tagsInput.classList.add("highlightr-annotation-input");
 
     const controls = contentEl.createDiv();
-    controls.style.display = "flex";
-    controls.style.justifyContent = "flex-end";
-    controls.style.gap = "8px";
-    controls.style.marginTop = "auto";
+    controls.classList.add("highlightr-annotation-controls");
 
     new Setting(controls)
       .addButton((button) => {
@@ -140,18 +137,20 @@ function ensureContextMenuListener() {
   );
 }
 
-function findAncestor(el: Element | null, className: string): Element | null {
+function findAncestor(el: Element | null, className: string, doc?: Document): Element | null {
   let node = el;
-  while (node && node !== document.body) {
+  const body = doc?.body ?? document.body;
+  while (node && node !== body) {
     if (node.classList.contains(className)) return node;
     node = node.parentElement;
   }
   return null;
 }
 
-function isHighlightedElement(el: Element | null): boolean {
+function isHighlightedElement(el: Element | null, doc?: Document): boolean {
   let node: Element | null = el;
-  while (node && node !== document.body) {
+  const body = doc?.body ?? document.body;
+  while (node && node !== body) {
     if (node.tagName === "MARK") return true;
     const cls = node.classList;
     if (cls && (cls.contains("cm-highlight") || cls.contains("cm-formatting-highlight"))) {
@@ -215,7 +214,7 @@ function findMarkRangeAtCoords(
   x: number,
   y: number,
 ): EditorRange | null {
-  const cm: any = editor.cm;
+  const cm = editor.cm;
   if (!cm) return null;
   let offset: number | null = null;
   try {
@@ -241,7 +240,7 @@ function findMarkRangeBeforeCoords(
   x: number,
   y: number,
 ): EditorRange | null {
-  const cm: any = editor.cm;
+  const cm = editor.cm;
   if (!cm) return null;
   let offset: number | null = null;
   try {
@@ -379,7 +378,7 @@ function addColorSubmenu(
 ): void {
   menu.addItem((item) => {
     item.setTitle(title).setIcon("highlightr-pen");
-    const contextItem = item as any;
+    const contextItem = item as unknown as ContextMenuItem;
     if (typeof contextItem.setSubmenu !== "function") {
       item.onClick(() => {
         const first = settings.highlighterOrder[0];
@@ -388,24 +387,24 @@ function addColorSubmenu(
       });
       return;
     }
-    const submenu = contextItem.setSubmenu() as Menu & {
-      setUseNativeMenu?: (useNativeMenu: boolean) => Menu;
-    };
-    submenu.setUseNativeMenu?.(false);
+    const submenu = contextItem.setSubmenu();
+    submenu?.setUseNativeMenu?.(false);
     const orderedHighlighters =
       settings.highlighterOrder.length > 0
         ? settings.highlighterOrder
         : Object.keys(settings.highlighters);
     orderedHighlighters.forEach((highlighter) => {
-      submenu.addItem((highlighterItem: any) => {
+      submenu?.addItem((highlighterItem) => {
+        const menuItem = highlighterItem as unknown as ContextMenuItem;
         const color = settings.highlighters[highlighter];
-        highlighterItem
-          .setTitle(highlighter)
-          .setIcon("highlighter")
-          .onClick(() => onColor(highlighter, color));
-        const itemDom = highlighterItem.dom as HTMLElement;
-        itemDom.addClass("highlightr-color-menu-item");
-        itemDom.style.setProperty("--highlightr-color", color && color.trim().length > 0 ? color : "transparent");
+        menuItem.setTitle?.(highlighter);
+        menuItem.setIcon?.("highlighter");
+        menuItem.onClick?.(() => onColor(highlighter, color));
+        const itemDom = menuItem.dom;
+        if (itemDom) {
+          itemDom.addClass("highlightr-color-menu-item");
+          itemDom.style.setProperty("--highlightr-color", color && color.trim().length > 0 ? color : "transparent");
+        }
       });
     });
   });
@@ -438,11 +437,12 @@ export default function contextMenu(
 
   if (Date.now() - lastContextClick.time < 1500) {
     const target = lastContextClick.target as Element | null;
-    const noteIcon = target ? findAncestor(target, "note-icon") : null;
+    const activeDoc = app.workspace.activeDocument ?? document;
+    const noteIcon = target ? findAncestor(target, "note-icon", activeDoc) : null;
     clickedNoteIcon = !!noteIcon;
     if (clickedNoteIcon) {
       clickedMarkRange = findMarkRangeBeforeCoords(editor, lastContextClick.x, lastContextClick.y);
-    } else if (target && isHighlightedElement(target)) {
+    } else if (target && isHighlightedElement(target, activeDoc)) {
       clickedMarkRange = findMarkRangeAtCoords(editor, lastContextClick.x, lastContextClick.y);
     }
   }
@@ -490,7 +490,7 @@ export default function contextMenu(
     const isCssClassesMode = settings.highlighterMethods === "css-classes";
     const className = (settings.highlighterClasses?.[highlighter] ?? createDefaultHighlighterClass(highlighter)).toLowerCase();
     const wrapped = isCssClassesMode
-      ? `<mark class="hltr-${className}">${selection}</mark>`
+      ? `<mark class="hltr-${className}" style="--hltr-color: ${color};">${selection}</mark>`
       : `<mark style="background-color: ${color};">${selection}</mark>`;
     editor.replaceSelection(wrapped);
     editor.focus();
@@ -511,6 +511,7 @@ export default function contextMenu(
         : [];
       remainingClasses.push(`hltr-${className}`);
       attributes = setAttribute(attributes, "class", remainingClasses.join(" "));
+      attributes = setAttribute(attributes, "style", `--hltr-color: ${color};`);
     } else {
       attributes = setAttribute(attributes, "style", `background-color: ${color};`);
     }

@@ -49,6 +49,24 @@ export default class HighlightrPlugin extends Plugin {
     private isUpdatingEditorContent: boolean = false;
     private suppressFullProcessingUntil: number = 0;
 
+    private getActiveDocument(): Document {
+        return this.app.workspace.activeDocument ?? document;
+    }
+
+    private getActiveEditorScroller(): HTMLElement | null {
+        const activeDoc = this.getActiveDocument();
+        return activeDoc.querySelector('.workspace-leaf.mod-active .cm-scroller');
+    }
+
+    private withPreservedEditorScroll(applyUpdate: () => void): void {
+        const scroller = this.getActiveEditorScroller();
+        const previousTop = scroller?.scrollTop ?? null;
+        applyUpdate();
+        if (scroller && previousTop !== null) {
+            scroller.scrollTop = previousTop;
+        }
+    }
+
     async onload() {
         console.log(`Highlightr v${this.manifest.version} loaded`);
         addIcons();
@@ -74,7 +92,7 @@ export default class HighlightrPlugin extends Plugin {
             await this.openNotesTab();
 
             // Force update the NotesTab after a short delay to ensure content is loaded
-            setTimeout(() => {
+            window.setTimeout(() => {
                 this.triggerNotesTabUpdate();
             }, 500);
 
@@ -100,7 +118,6 @@ export default class HighlightrPlugin extends Plugin {
                 if (this.isUpdatingEditorContent) return;
                 if (Date.now() < this.suppressFullProcessingUntil) return;
                 this.processMarkTags();
-                this.cleanupNotes();
                 this.triggerNotesTabUpdate();
             }, 120))
         );
@@ -136,13 +153,12 @@ export default class HighlightrPlugin extends Plugin {
     }
 
     reloadStyles(settings: HighlightrSettings) {
-        let currentSheet = document.querySelector("style#highlightr-styles");
+        const activeDoc = this.getActiveDocument();
+        const currentSheet = activeDoc.querySelector("style#highlightr-styles");
         if (currentSheet) {
             currentSheet.remove();
-            createStyles(settings);
-        } else {
-            createStyles(settings);
         }
+        createStyles(settings, activeDoc);
     }
 
     eraseHighlight = (editor: Editor) => {
@@ -218,14 +234,16 @@ export default class HighlightrPlugin extends Plugin {
                 [key: string]: CommandPlot;
             };
 
-            const commandsMap: commandsPlot = {
+const colorValue = this.settings.highlighters[highlighterKey];
+                const className = (this.settings.highlighterClasses?.[highlighterKey] ?? createDefaultHighlighterClass(highlighterKey)).toLowerCase();
+                const commandsMap: commandsPlot = {
                 highlight: {
                     char: 34,
                     line: 0,
                     prefix:
                         this.settings.highlighterMethods === "css-classes"
-                            ? `<mark class="hltr-${(this.settings.highlighterClasses?.[highlighterKey] ?? createDefaultHighlighterClass(highlighterKey)).toLowerCase()}">`
-                            : `<mark style="background: ${this.settings.highlighters[highlighterKey]};">`,
+                            ? `<mark class="hltr-${className}" style="--hltr-color: ${colorValue};">`
+                            : `<mark style="background: ${colorValue};">`,
                     suffix: "</mark>",
                 },
             };
@@ -264,19 +282,20 @@ export default class HighlightrPlugin extends Plugin {
     };
 
     updateStyle = () => {
-        document.body.classList.toggle(
+        const activeDoc = this.getActiveDocument();
+        activeDoc.body.classList.toggle(
             "highlightr-lowlight",
             this.settings.highlighterStyle === "lowlight"
         );
-        document.body.classList.toggle(
+        activeDoc.body.classList.toggle(
             "highlightr-floating",
             this.settings.highlighterStyle === "floating"
         );
-        document.body.classList.toggle(
+        activeDoc.body.classList.toggle(
             "highlightr-rounded",
             this.settings.highlighterStyle === "rounded"
         );
-        document.body.classList.toggle(
+        activeDoc.body.classList.toggle(
             "highlightr-realistic",
             this.settings.highlighterStyle === "realistic"
         );
@@ -316,21 +335,13 @@ export default class HighlightrPlugin extends Plugin {
         // Remove any existing bubbles first
         this.removeExistingBubbles();
 
-        const bubble = document.createElement("div");
+        const activeDoc = this.getActiveDocument();
+        const bubble = activeDoc.createElement("div");
         bubble.className = "note-bubble";
         bubble.textContent = note;
-        bubble.style.position = "absolute";
         bubble.style.left = `${event.pageX}px`;
         bubble.style.top = `${event.pageY}px`;
-        bubble.style.backgroundColor = "#ccc";
-        bubble.style.border = "1px solid #aaa";
-        bubble.style.padding = "5px";
-        bubble.style.zIndex = "1000";
-        bubble.style.maxWidth = "300px";
-        bubble.style.height = "auto";
-        bubble.style.overflowWrap = "break-word";
-        bubble.style.borderRadius = "8px";
-        document.body.appendChild(bubble);
+        activeDoc.body.appendChild(bubble);
 
         // Get the mark element (highlight)
         const target = event.target as HTMLElement;
@@ -340,7 +351,7 @@ export default class HighlightrPlugin extends Plugin {
 
         const removeBubble = (e: Event) => {
             if (bubble.parentNode) {
-                document.body.removeChild(bubble);
+                activeDoc.body.removeChild(bubble);
                 markElement.removeEventListener("mouseout", removeBubble);
                 markElement.removeEventListener("click", removeBubble);
             }
@@ -352,7 +363,8 @@ export default class HighlightrPlugin extends Plugin {
     }
 
     private removeExistingBubbles() {
-        const existingBubbles = document.querySelectorAll('.note-bubble');
+        const activeDoc = this.getActiveDocument();
+        const existingBubbles = activeDoc.querySelectorAll('.note-bubble');
         existingBubbles.forEach(bubble => {
             if (bubble.parentNode) {
                 bubble.parentNode.removeChild(bubble);
@@ -382,19 +394,20 @@ export default class HighlightrPlugin extends Plugin {
         workspaceEl.addEventListener('click', this.clickHandlerBound);
 
         // Handle editing mode
-        const editorContainers = document.querySelectorAll('.cm-html-embed');
+        const activeDoc = this.getActiveDocument();
+        const editorContainers = activeDoc.querySelectorAll('.cm-html-embed');
         editorContainers.forEach((editorContainer) => {
             this.attachMouseEvents(editorContainer);
         });
 
         // Handle reading mode
-        const readingViews = document.querySelectorAll('.markdown-preview-view');
+        const readingViews = activeDoc.querySelectorAll('.markdown-preview-view');
         readingViews.forEach((readingView) => {
             this.attachMouseEvents(readingView);
         });
 
         // Clean up any duplicate text nodes
-        this.cleanupNotes();
+        this.processMarkTags();
     }
 
     // Define mouse over event handler to display note bubble
@@ -422,7 +435,26 @@ export default class HighlightrPlugin extends Plugin {
         container.addEventListener("mouseover", handleMouseOver);
     }
 
-    // Ensure that note icons are correctly added to highlights with a note
+    private stripInjectedDecorationSpans(content: string): string {
+        let cleaned = content;
+        let previous = "";
+
+        while (cleaned !== previous) {
+            previous = cleaned;
+            cleaned = cleaned
+                .replace(/<span\s+class="note-icon"[^>]*>[\s\S]*?<\/span>/g, "")
+                .replace(/<span\s+class="highlight-tag"[^>]*>[\s\S]*?<\/span>/g, "")
+                .replace(/<span\s+class="highlight-tags"[^>]*>[\s\S]*?<\/span>/g, "");
+        }
+
+        return cleaned
+            .replace(/<span\s+class="(?:note-icon|highlight-tag|highlight-tags)"[^>]*>/g, "")
+            .replace(/(<span class="note-icon">[\s\S]*?<\/span>)(?:\s*<\/span>)+/g, "$1")
+            .replace(/<\/mark>(?:\s*<\/span>)+/g, "</mark>")
+            .replace(/(?:\s*<\/span>\s*)+(?=<mark\b)/g, "")
+            .replace(/(^|\n)\s*(?:<\/span>\s*)+(?=\n|$)/g, "$1");
+    }
+
     cleanupNotes() {
         try {
             const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -432,13 +464,16 @@ export default class HighlightrPlugin extends Plugin {
             if (!content) return;
 
             const cursorPos = view.editor.getCursor();
+            const activeDoc = this.getActiveDocument();
 
-            const iconSpan = document.createElement('span');
-            iconSpan.className = 'note-icon';
-            setIcon(iconSpan, 'sticky-note');
-            const noteIconHtml = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
+            const noteIconWrapper = activeDoc.createElement('span');
+            noteIconWrapper.className = 'note-icon';
+            setIcon(noteIconWrapper, 'sticky-note');
+            const noteIconHtml = noteIconWrapper.outerHTML;
 
-            const cleanContent = content.replace(
+            const normalizedContent = this.stripInjectedDecorationSpans(content);
+
+            const cleanContent = normalizedContent.replace(
                 /<mark([^>]*)>([\s\S]*?)<\/mark>(?:\s*<span class="note-icon">[\s\S]*?<\/span>)*/g,
                 (match, attrs, inner) => {
                     const attrsText = (attrs || "").trim();
@@ -452,8 +487,10 @@ export default class HighlightrPlugin extends Plugin {
 
             if (content !== cleanContent) {
                 this.isUpdatingEditorContent = true;
-                view.editor.setValue(cleanContent);
-                view.editor.setCursor(cursorPos);
+                this.withPreservedEditorScroll(() => {
+                    view.editor.setValue(cleanContent);
+                    view.editor.setCursor(cursorPos);
+                });
                 this.isUpdatingEditorContent = false;
             }
         } catch (error) {
@@ -477,12 +514,13 @@ export default class HighlightrPlugin extends Plugin {
         const to = { line: endLine, ch: targetEditor.getLine(endLine).length };
         const segment = targetEditor.getRange(from, to);
 
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'note-icon';
-        setIcon(iconSpan, 'sticky-note');
-        const noteIconHtml = `<span class="note-icon">${iconSpan.innerHTML}</span>`;
+        const activeDoc = this.getActiveDocument();
+        const noteIconWrapper = activeDoc.createElement('span');
+        noteIconWrapper.className = 'note-icon';
+        setIcon(noteIconWrapper, 'sticky-note');
+        const noteIconHtml = noteIconWrapper.outerHTML;
 
-        const cleaned = segment
+        const cleaned = this.stripInjectedDecorationSpans(segment)
             .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
             .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
             .replace(/<span class="highlight-tags">\s*<\/span>/g, '')
@@ -525,8 +563,10 @@ export default class HighlightrPlugin extends Plugin {
 
         if (segment !== rebuilt) {
             this.isUpdatingEditorContent = true;
-            targetEditor.replaceRange(rebuilt, from, to);
-            targetEditor.setCursor(cursor);
+            this.withPreservedEditorScroll(() => {
+                targetEditor.replaceRange(rebuilt, from, to);
+                targetEditor.setCursor(cursor);
+            });
             this.isUpdatingEditorContent = false;
         }
 
@@ -542,7 +582,7 @@ export default class HighlightrPlugin extends Plugin {
 
         const cursorPos = view.editor.getCursor();
 
-        const cleanContent = content
+        const cleanContent = this.stripInjectedDecorationSpans(content)
             .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
             .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
             .replace(/<span class="highlight-tags">\s*<\/span>/g, '')
@@ -560,10 +600,11 @@ export default class HighlightrPlugin extends Plugin {
                 let additionalContent = "";
 
                 if (note.trim().length > 0) {
-                    const iconSpan = document.createElement('span');
-                    iconSpan.className = 'note-icon';
-                    setIcon(iconSpan, 'sticky-note');
-                    additionalContent += `<span class="note-icon">${iconSpan.innerHTML}</span>`;
+                    const activeDoc = this.getActiveDocument();
+                    const noteIconWrapper = activeDoc.createElement('span');
+                    noteIconWrapper.className = 'note-icon';
+                    setIcon(noteIconWrapper, 'sticky-note');
+                    additionalContent += noteIconWrapper.outerHTML;
                 }
 
                 if (tags.trim().length > 0) {
@@ -588,8 +629,10 @@ export default class HighlightrPlugin extends Plugin {
 
         if (content !== updatedContent) {
             this.isUpdatingEditorContent = true;
-            view.editor.setValue(updatedContent);
-            view.editor.setCursor(cursorPos);
+            this.withPreservedEditorScroll(() => {
+                view.editor.setValue(updatedContent);
+                view.editor.setCursor(cursorPos);
+            });
             this.isUpdatingEditorContent = false;
         }
     }
@@ -614,14 +657,23 @@ export default class HighlightrPlugin extends Plugin {
 
                 if (leaf) {
                     this.app.workspace.revealLeaf(leaf);
-                    const rightSplit: any = (this.app.workspace as any).rightSplit;
-                    if (rightSplit && rightSplit.collapsed && typeof rightSplit.expand === "function") {
+                    const workspace = this.app.workspace as {
+                        rightSplit?: {
+                            collapsed?: boolean;
+                            expand?: () => void;
+                        };
+                    };
+                    const rightSplit = workspace.rightSplit;
+                    if (rightSplit?.collapsed && typeof rightSplit.expand === "function") {
                         rightSplit.expand();
                     }
                 }
             };
 
-            if ((this.app.workspace as any).layoutReady) {
+            const workspace = this.app.workspace as {
+                layoutReady?: boolean;
+            };
+            if (workspace.layoutReady) {
                 await run();
             } else {
                 this.app.workspace.onLayoutReady(run);

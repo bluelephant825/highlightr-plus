@@ -16,7 +16,7 @@ const highlighterMenu = (
     const cursor = editor.getCursor("from");
     let coords: Coords;
 
-    const menu = new Menu() as unknown as EnhancedMenu;
+const menu = new Menu() as EnhancedMenu;
 
     menu.setUseNativeMenu(false);
 
@@ -30,9 +30,11 @@ const highlighterMenu = (
         highlighterItem.onClick(() => {
           app.commands.executeCommandById(`highlightr-plugin:${highlighter}`);
         });
-        const itemDom = (highlighterItem as any).dom as HTMLElement;
-        itemDom.addClass("highlightr-color-menu-item");
-        itemDom.style.setProperty("--highlightr-color", color && color.trim().length > 0 ? color : "transparent");
+        const itemDom = (highlighterItem as { dom?: HTMLElement }).dom;
+        if (itemDom) {
+          itemDom.addClass("highlightr-color-menu-item");
+          itemDom.style.setProperty("--highlightr-color", color && color.trim().length > 0 ? color : "transparent");
+        }
       });
     });
 
