@@ -2,6 +2,7 @@
   "name": "highlightr-plus-plugin",
   "version": "1.0.0",
   "description": "Highlightr+ is a plugin that adds a simple highlighting modal for better multi-colored highlighting support 🎨.",
+  "type": "module",
   "main": "main.js",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",
