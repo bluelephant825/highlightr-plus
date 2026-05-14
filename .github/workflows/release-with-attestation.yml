@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Build plugin
-        run: npm run build
+        run: npx rollup --config rollup.config.mjs
 
       - name: Generate artifact attestation for manifest.json
         uses: actions/attest@v4
