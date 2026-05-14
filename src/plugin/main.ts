@@ -51,7 +51,7 @@ export default class HighlightrPlugin extends Plugin {
     private suppressFullProcessingUntil: number = 0;
 
     private getActiveDocument(): Document {
-        return this.app.workspace.activeDocument ?? document;
+        return this.app.workspace.activeDocument ?? activeDocument;
     }
 
     private getActiveEditorScroller(): HTMLElement | null {
@@ -68,97 +68,101 @@ export default class HighlightrPlugin extends Plugin {
         }
     }
 
-    async onload() {
-        console.log(`Highlightr v${this.manifest.version} loaded`);
-        addIcons();
+    onload(): void {
+        const init = async () => {
+            console.log(`Highlightr v${this.manifest.version} loaded`);
+            addIcons();
 
-        await this.loadSettings();
+            await this.loadSettings();
 
-        // Register NotesTab view type first
-        this.registerView(
-            NOTES_VIEW_TYPE,
-            (leaf: WorkspaceLeaf) => new NotesTab(leaf, this)
-        );
+            // Register NotesTab view type first
+            this.registerView(
+                NOTES_VIEW_TYPE,
+                (leaf: WorkspaceLeaf) => new NotesTab(leaf, this)
+            );
 
-        this.app.workspace.onLayoutReady(async () => {
-            console.log('Initializing Highlightr plugin...');
+            this.app.workspace.onLayoutReady(async () => {
+                console.log('Initializing Highlightr plugin...');
 
-            // Initialize plugin features
-            this.reloadStyles(this.settings);
-            createHighlighterIcons(this.settings, this);
-            this.processMarkTags();
-            this.attachEventListeners();
-
-            // Open and initialize the notes tab
-            await this.openNotesTab();
-
-            // Force update the NotesTab after a short delay to ensure content is loaded
-            window.setTimeout(() => {
-                this.triggerNotesTabUpdate();
-            }, 500);
-
-            console.log('Highlightr plugin initialization complete');
-        });
-
-        this.editorMenuEventRef = (this.app.workspace as unknown as {
-            on: (name: string, callback: (menu: Menu, editor: Editor) => void) => EventRef;
-        }).on("editor-menu", (menu: Menu, editor: Editor) => {
-            this.handleHighlighterInContextMenu(menu, editor as EnhancedEditor);
-        });
-        this.register(() => {
-            if (this.editorMenuEventRef) {
-                this.app.workspace.offref(this.editorMenuEventRef);
-                this.editorMenuEventRef = null;
-            }
-        });
-
-        // Register for view changes
-        this.registerEvent(
-            this.app.workspace.on("active-leaf-change", () => {
-                this.removeExistingBubbles();
+                // Initialize plugin features
+                this.reloadStyles(this.settings);
+                createHighlighterIcons(this.settings, this);
                 this.processMarkTags();
                 this.attachEventListeners();
-                this.triggerNotesTabUpdate();
-            })
-        );
 
-        this.registerEvent(
-            this.app.workspace.on("editor-change", debounce(() => {
-                if (this.isUpdatingEditorContent) return;
-                if (Date.now() < this.suppressFullProcessingUntil) return;
-                this.processMarkTags();
-                this.triggerNotesTabUpdate();
-            }, 120))
-        );
+                // Open and initialize the notes tab
+                await this.openNotesTab();
 
-        this.registerEvent(
-            this.app.workspace.on("file-open", () => {
-                if (this.fileHasHighlights()) {
-                    this.openNotesTab();
+                // Force update the NotesTab after a short delay to ensure content is loaded
+                window.setTimeout(() => {
+                    this.triggerNotesTabUpdate();
+                }, 500);
+
+                console.log('Highlightr plugin initialization complete');
+            });
+
+            this.editorMenuEventRef = (this.app.workspace as unknown as {
+                on: (name: string, callback: (menu: Menu, editor: Editor) => void) => EventRef;
+            }).on("editor-menu", (menu: Menu, editor: Editor) => {
+                this.handleHighlighterInContextMenu(menu, editor as EnhancedEditor);
+            });
+            this.register(() => {
+                if (this.editorMenuEventRef) {
+                    this.app.workspace.offref(this.editorMenuEventRef);
+                    this.editorMenuEventRef = null;
                 }
-                this.triggerNotesTabUpdate();
-            })
-        );
+            });
 
-        this.addSettingTab(new HighlightrSettingTab(this.app, this));
+            // Register for view changes
+            this.registerEvent(
+                this.app.workspace.on("active-leaf-change", () => {
+                    this.removeExistingBubbles();
+                    this.processMarkTags();
+                    this.attachEventListeners();
+                    this.triggerNotesTabUpdate();
+                })
+            );
 
-        this.addCommand({
-            id: "highlighter-plugin-menu",
-            name: "Open Highlightr",
-            icon: "highlightr-pen",
-            editorCallback: (editor: Editor) => {
-                showHighlightrMenuFromCommand(this, editor as EnhancedEditor);
-            },
-        });
+            this.registerEvent(
+                this.app.workspace.on("editor-change", debounce(() => {
+                    if (this.isUpdatingEditorContent) return;
+                    if (Date.now() < this.suppressFullProcessingUntil) return;
+                    this.processMarkTags();
+                    this.triggerNotesTabUpdate();
+                }, 120))
+            );
 
-        addEventListener("Highlightr-NewCommand", () => {
-            this.reloadStyles(this.settings);
+            this.registerEvent(
+                this.app.workspace.on("file-open", () => {
+                    if (this.fileHasHighlights()) {
+                        void this.openNotesTab();
+                    }
+                    this.triggerNotesTabUpdate();
+                })
+            );
+
+            this.addSettingTab(new HighlightrSettingTab(this.app, this));
+
+            this.addCommand({
+                id: "highlighter-plugin-menu",
+                name: "Open Highlightr",
+                icon: "highlightr-pen",
+                editorCallback: (editor: Editor) => {
+                    showHighlightrMenuFromCommand(this, editor as EnhancedEditor);
+                },
+            });
+
+            addEventListener("Highlightr-NewCommand", () => {
+                this.reloadStyles(this.settings);
+                this.generateCommands(this.editor);
+                createHighlighterIcons(this.settings, this);
+            });
+
             this.generateCommands(this.editor);
-            createHighlighterIcons(this.settings, this);
-        });
+            this.refresh();
+        };
 
-        this.generateCommands(this.editor);
-        this.refresh();
+        void init();
     }
 
     reloadStyles(settings: HighlightrSettings) {
@@ -219,7 +223,6 @@ export default class HighlightrPlugin extends Plugin {
 
                 const preLast = pre.slice(-1);
                 const prefixLast = prefix.replace(/^\s+/, "").slice(-1);
-                const sufFirst = suf[0];
 
                 if (suf === suffix.replace(/\s+$/, "")) {
                     if (preLast === prefixLast && selectedText) {
@@ -363,11 +366,11 @@ const colorValue = this.settings.highlighters[highlighterKey];
             }
         });
 
-        delete (this.settings as any).highlighterStatuses;
+        delete (this.settings as unknown as { highlighterStatuses?: unknown }).highlighterStatuses;
     }
 
     async saveSettings() {
-        const settingsToSave = { ...this.settings } as Record<string, unknown>;
+        const settingsToSave = { ...this.settings } as unknown as { highlighterStatuses?: unknown };
         delete settingsToSave.highlighterStatuses;
         await this.saveData(settingsToSave);
     }
@@ -516,7 +519,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
 
             const cleanContent = normalizedContent.replace(
                 /<mark([^>]*)>([\s\S]*?)<\/mark>(?:\s*<span class="note-icon">[\s\S]*?<\/span>)*/g,
-                (match, attrs, inner) => {
+                (match: string, attrs: string, inner: string) => {
                     const attrsText = (attrs || "").trim();
                     const noteMatch = attrsText.match(/\bdata-note="([^"]*)"/i);
                     const hasNote = !!noteMatch && noteMatch[1].trim().length > 0;
@@ -569,7 +572,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
 
         const rebuilt = cleaned.replace(
             /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
-            (match, attributes, innerContent) => {
+            (match: string, attributes: string, innerContent: string) => {
                 const normalizedAttributes = (attributes || "").trim();
                 const attrPart = normalizedAttributes.length > 0 ? ` ${normalizedAttributes}` : "";
                 const dataTagsMatch = normalizedAttributes.match(/\bdata-tags="([^"]*)"/);
@@ -631,7 +634,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
 
         const updatedContent = cleanContent.replace(
             /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
-            (match, attributes, innerContent) => {
+            (match: string, attributes: string, innerContent: string) => {
                 const normalizedAttributes = (attributes || "").trim();
                 const attrPart = normalizedAttributes.length > 0 ? ` ${normalizedAttributes}` : "";
                 const dataTagsMatch = normalizedAttributes.match(/\bdata-tags="([^"]*)"/);

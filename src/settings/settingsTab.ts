@@ -377,9 +377,11 @@ export class HighlightrSettingTab extends PluginSettingTab {
       });
 
       if (fileUpdatedMarks > 0 && replaced !== content) {
-        await this.app.vault.modify(file as TFile, replaced);
-        fileCount += 1;
-        updatedMarks += fileUpdatedMarks;
+        if (file instanceof TFile) {
+          await this.app.vault.modify(file, replaced);
+          fileCount += 1;
+          updatedMarks += fileUpdatedMarks;
+        }
       }
     }
 
@@ -410,14 +412,14 @@ export class HighlightrSettingTab extends PluginSettingTab {
     settingItem.addClass("highlighter-item-draggable");
     const colorIcon = settingItem.createEl("span");
     colorIcon.addClass("highlighter-setting-icon");
-    const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const svgIcon = activeDocument.createElementNS("http://www.w3.org/2000/svg", "svg");
     svgIcon.setAttribute("viewBox", "0 0 24 24");
     svgIcon.setAttribute("fill", this.plugin.settings.highlighters[highlighter]);
     svgIcon.setAttribute("stroke", this.plugin.settings.highlighters[highlighter]);
     svgIcon.setAttribute("stroke-width", "0");
     svgIcon.setAttribute("stroke-linecap", "round");
     svgIcon.setAttribute("stroke-linejoin", "round");
-    const svgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const svgPath = activeDocument.createElementNS("http://www.w3.org/2000/svg", "path");
     svgPath.setAttribute("d", "M20.707 5.826l-3.535-3.533a.999.999 0 0 0-1.408-.006L7.096 10.82a1.01 1.01 0 0 0-.273.488l-1.024 4.437L4 18h2.828l1.142-1.129l3.588-.828c.18-.042.345-.133.477-.262l8.667-8.535a1 1 0 0 0 .005-1.42zm-9.369 7.833l-2.121-2.12l7.243-7.131l2.12 2.12l-7.242 7.131zM4 20h16v2H4z");
     svgIcon.appendChild(svgPath);
     colorIcon.appendChild(svgIcon);
@@ -483,7 +485,7 @@ export class HighlightrSettingTab extends PluginSettingTab {
       text: "Olivier 👨🏼‍💻",
       href: "https://github.com/bluelephant825",
     });
-    new Setting(containerEl).setName("Plugin Settings").setHeading();
+    new Setting(containerEl).setName("Plugin").setHeading();
 
     new Setting(containerEl)
       .setName("Choose highlight method")
@@ -501,8 +503,8 @@ export class HighlightrSettingTab extends PluginSettingTab {
             window.setTimeout(() => {
               dispatchEvent(new Event("Highlightr-NewCommand"));
             }, 100);
-            this.plugin.saveSettings();
-            this.plugin.saveData(this.plugin.settings);
+            void this.plugin.saveSettings();
+            void this.plugin.saveData(this.plugin.settings);
             this.display();
           });
       });
@@ -522,8 +524,8 @@ export class HighlightrSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.highlighterStyle)
           .onChange((highlighterStyle) => {
             this.plugin.settings.highlighterStyle = highlighterStyle;
-            this.plugin.saveSettings();
-            this.plugin.saveData(this.plugin.settings);
+            void this.plugin.saveSettings();
+            void this.plugin.saveData(this.plugin.settings);
             this.plugin.refresh();
           });
       });
@@ -533,22 +535,34 @@ export class HighlightrSettingTab extends PluginSettingTab {
       demo.addClass("highlightr-style-demo");
 
       const lowlight = createEl("span", { text: "Lowlight" });
-      lowlight.style.cssText = "background:#FFB7EACC;padding: .125em .125em;--lowlight-background: var(--background-primary);border-radius: 0;background-image: linear-gradient(360deg,rgba(255, 255, 255, 0) 40%,var(--lowlight-background) 40%) !important;";
+      lowlight.setAttribute(
+        "style",
+        "background:#FFB7EACC;padding: .125em .125em;--lowlight-background: var(--background-primary);border-radius: 0;background-image: linear-gradient(360deg,rgba(255, 255, 255, 0) 40%,var(--lowlight-background) 40%) !important;"
+      );
       demo.appendChild(lowlight);
-      demo.appendChild(document.createTextNode(" "));
+      demo.appendChild(activeDocument.createTextNode(" "));
 
       const floating = createEl("span", { text: "Floating" });
-      floating.style.cssText = "background:#93C0FFCC;--floating-background: var(--background-primary);border-radius: 0;padding-bottom: 5px;background-image: linear-gradient(360deg,rgba(255, 255, 255, 0) 28%,var(--floating-background) 28%) !important;";
+      floating.setAttribute(
+        "style",
+        "background:#93C0FFCC;--floating-background: var(--background-primary);border-radius: 0;padding-bottom: 5px;background-image: linear-gradient(360deg,rgba(255, 255, 255, 0) 28%,var(--floating-background) 28%) !important;"
+      );
       demo.appendChild(floating);
-      demo.appendChild(document.createTextNode(" "));
+      demo.appendChild(activeDocument.createTextNode(" "));
 
       const realistic = createEl("span", { text: "Realistic" });
-      realistic.style.cssText = "background:#9CF09CCC;margin: 0 -0.05em;padding: 0.1em 0.4em;border-radius: 0.8em 0.3em;-webkit-box-decoration-break: clone;box-decoration-break: clone;text-shadow: 0 0 0.75em var(--background-primary-alt);";
+      realistic.setAttribute(
+        "style",
+        "background:#9CF09CCC;margin: 0 -0.05em;padding: 0.1em 0.4em;border-radius: 0.8em 0.3em;-webkit-box-decoration-break: clone;box-decoration-break: clone;text-shadow: 0 0 0.75em var(--background-primary-alt);"
+      );
       demo.appendChild(realistic);
-      demo.appendChild(document.createTextNode(" "));
+      demo.appendChild(activeDocument.createTextNode(" "));
 
       const rounded = createEl("span", { text: "Rounded" });
-      rounded.style.cssText = "background:#CCA9FFCC;margin: 0 -0.05em;padding: 0.125em 0.15em;border-radius: 0.2em;-webkit-box-decoration-break: clone;box-decoration-break: clone;";
+      rounded.setAttribute(
+        "style",
+        "background:#CCA9FFCC;margin: 0 -0.05em;padding: 0.125em 0.15em;border-radius: 0.2em;-webkit-box-decoration-break: clone;box-decoration-break: clone;"
+      );
       demo.appendChild(rounded);
 
       return demo;
@@ -627,9 +641,11 @@ export class HighlightrSettingTab extends PluginSettingTab {
           .on("change", function (color: Pickr.HSVaColor) {
             colorHex = color.toHEXA().toString();
             let newColor;
-            colorHex.length == 6
-              ? (newColor = `${color.toHEXA().toString()}A6`)
-              : (newColor = color.toHEXA().toString());
+            if (colorHex.length == 6) {
+              newColor = `${color.toHEXA().toString()}A6`;
+            } else {
+              newColor = color.toHEXA().toString();
+            }
             colorInput.inputEl.setAttribute(
               "style",
               `background-color: ${newColor}; color: var(--text-normal);`
@@ -693,16 +709,20 @@ export class HighlightrSettingTab extends PluginSettingTab {
               new Notice("This color already exists");
               return;
             }
-            color && !value
-              ? new Notice("Highlighter hex code missing")
-              : !color && value
-              ? new Notice("Highlighter name missing")
-              : new Notice("Highlighter values missing");
+            if (color && !value) {
+              new Notice("Highlighter hex code missing");
+            } else if (!color && value) {
+              new Notice("Highlighter name missing");
+            } else {
+              new Notice("Highlighter values missing");
+            }
           });
       });
 
-    const activeHeader = containerEl.createEl("h2", { text: "Active highlight colors" });
-    activeHeader.addClass("highlightr-section-heading");
+    const activeHeader = new Setting(containerEl)
+      .setName("Active highlight colors")
+      .setHeading();
+    activeHeader.setClass("highlightr-section-heading");
 
     const activeContainer = containerEl.createEl("div", {
       cls: "HighlightrSettingsTabsContainer",
@@ -740,7 +760,7 @@ export class HighlightrSettingTab extends PluginSettingTab {
         order.splice(from, 1);
         order.splice(to, 0, moved);
         this.plugin.settings.highlighterOrder = order;
-        this.plugin.saveSettings();
+        void this.plugin.saveSettings();
       },
     });
 
@@ -748,8 +768,10 @@ export class HighlightrSettingTab extends PluginSettingTab {
       this.renderHighlighterItem(activeContainer, highlighter, true);
     });
 
-    const inactiveHeader = containerEl.createEl("h2", { text: "Inactive highlight colors" });
-    inactiveHeader.addClass("highlightr-section-heading");
+    const inactiveHeader = new Setting(containerEl)
+      .setName("Inactive highlight colors")
+      .setHeading();
+    inactiveHeader.setClass("highlightr-section-heading");
 
     const inactiveContainer = containerEl.createEl("div", {
       cls: "HighlightrSettingsTabsContainer",
@@ -763,15 +785,12 @@ export class HighlightrSettingTab extends PluginSettingTab {
     });
 
     const donateText = createEl("p");
-    const donateToChetachi = createEl("h3");
-    donateToChetachi.appendText("Donate to Chetachi");
-    const donateToOlivier = createEl("h3");
-    donateToOlivier.addClass("hltrDonationHeadingSpacing");
-    donateToOlivier.appendText("Donate to Olivier");
     donateText.appendText(
       "If you like this Plugin and are considering donating to support continued development, use the buttons below!"
     );
     hltrDonationDiv.appendChild(donateText);
+    const donateToChetachi = createEl("div");
+    new Setting(donateToChetachi).setName("Donate to Chetachi").setHeading();
     hltrDonationDiv.appendChild(donateToChetachi);
     hltrDonationDiv.appendChild(
       paypalButton("https://paypal.me/chelseaezikeuzor")
@@ -780,6 +799,9 @@ export class HighlightrSettingTab extends PluginSettingTab {
       buyMeACoffeeButton("https://www.buymeacoffee.com/chetachi")
     );
     hltrDonationDiv.appendChild(kofiButton("https://ko-fi.com/chetachi"));
+    const donateToOlivier = createEl("div");
+    donateToOlivier.addClass("hltrDonationHeadingSpacing");
+    new Setting(donateToOlivier).setName("Donate to Olivier").setHeading();
     hltrDonationDiv.appendChild(donateToOlivier);
     hltrDonationDiv.appendChild(
       paypalButton("https://paypal.me/odebroqueville")

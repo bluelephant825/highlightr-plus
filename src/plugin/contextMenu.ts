@@ -139,7 +139,7 @@ function ensureContextMenuListener() {
 
 function findAncestor(el: Element | null, className: string, doc?: Document): Element | null {
   let node = el;
-  const body = doc?.body ?? document.body;
+  const body = doc?.body ?? activeDocument.body;
   while (node && node !== body) {
     if (node.classList.contains(className)) return node;
     node = node.parentElement;
@@ -149,7 +149,7 @@ function findAncestor(el: Element | null, className: string, doc?: Document): El
 
 function isHighlightedElement(el: Element | null, doc?: Document): boolean {
   let node: Element | null = el;
-  const body = doc?.body ?? document.body;
+  const body = doc?.body ?? activeDocument.body;
   while (node && node !== body) {
     if (node.tagName === "MARK") return true;
     const cls = node.classList;
@@ -223,14 +223,14 @@ function findMarkRangeAtCoords(
       if (typeof result === "number") offset = result;
       else if (result && typeof result.pos === "number") offset = result.pos;
     }
-  } catch (_) {
+  } catch {
     offset = null;
   }
   if (offset == null) return null;
   try {
     const pos = editor.offsetToPos(offset);
     return findMarkRangeAt(editor, pos);
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -249,14 +249,14 @@ function findMarkRangeBeforeCoords(
       if (typeof result === "number") offset = result;
       else if (result && typeof result.pos === "number") offset = result.pos;
     }
-  } catch (_) {
+  } catch {
     offset = null;
   }
   if (offset == null) return null;
   try {
     const pos = editor.offsetToPos(offset);
     return findLastMarkRangeBefore(editor, pos);
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -446,7 +446,7 @@ export default function contextMenu(
 
   if (Date.now() - lastContextClick.time < 1500) {
     const target = lastContextClick.target as Element | null;
-    const activeDoc = app.workspace.activeDocument ?? document;
+    const activeDoc = app.workspace.activeDocument ?? activeDocument;
     const noteIcon = target ? findAncestor(target, "note-icon", activeDoc) : null;
     clickedNoteIcon = !!noteIcon;
     if (clickedNoteIcon) {

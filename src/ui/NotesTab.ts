@@ -17,7 +17,7 @@ export class NotesTab extends ItemView {
 
     private getActiveDocument(): Document {
         const app = this.app as EnhancedApp;
-        return app.workspace.activeDocument ?? document;
+        return app.workspace.activeDocument ?? activeDocument;
     }
 
     getViewType(): string {
@@ -335,14 +335,14 @@ export class NotesTab extends ItemView {
     public forceUpdate(): void {
         try {
             const container = this.containerEl.querySelector('.highlightr-notes-container');
-            if (container instanceof HTMLDivElement) {
-                this.updateNotesList(container);
+            if (container && (container as any).instanceOf(HTMLDivElement)) {
+                void this.updateNotesList(container as HTMLDivElement);
             } else {
                 // If container doesn't exist, create it
                 const newContainer = this.containerEl.createDiv({
                     cls: "highlightr-notes-container"
                 });
-                this.updateNotesList(newContainer);
+                void this.updateNotesList(newContainer);
             }
         } catch (error) {
             console.error("Error in forceUpdate:", error);
@@ -356,20 +356,20 @@ export class NotesTab extends ItemView {
     async onOpen(): Promise<void> {
         try {
             const existingContainer = this.containerEl.querySelector('.highlightr-notes-container');
-            const container = existingContainer instanceof HTMLDivElement
-                ? existingContainer
+            const container = existingContainer && (existingContainer as any).instanceOf(HTMLDivElement)
+                ? existingContainer as HTMLDivElement
                 : this.containerEl.createDiv({ cls: "highlightr-notes-container" });
 
             // Register for workspace events
             this.registerEvent(
                 this.app.workspace.on("file-open", () => {
-                    this.updateNotesList(container);
+                    void this.updateNotesList(container);
                 })
             );
 
             this.registerEvent(
                 this.app.workspace.on("editor-change", () => {
-                    this.updateNotesList(container);
+                    void this.updateNotesList(container);
                 })
             );
 
