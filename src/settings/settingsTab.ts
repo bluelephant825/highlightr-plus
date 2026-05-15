@@ -535,34 +535,22 @@ export class HighlightrSettingTab extends PluginSettingTab {
       demo.addClass("highlightr-style-demo");
 
       const lowlight = createEl("span", { text: "Lowlight" });
-      lowlight.setAttribute(
-        "style",
-        "background:#FFB7EACC;padding: .125em .125em;--lowlight-background: var(--background-primary);border-radius: 0;background-image: linear-gradient(360deg,rgba(255, 255, 255, 0) 40%,var(--lowlight-background) 40%) !important;"
-      );
+      lowlight.addClass("highlightr-style-demo-lowlight");
       demo.appendChild(lowlight);
       demo.appendChild(activeDocument.createTextNode(" "));
 
       const floating = createEl("span", { text: "Floating" });
-      floating.setAttribute(
-        "style",
-        "background:#93C0FFCC;--floating-background: var(--background-primary);border-radius: 0;padding-bottom: 5px;background-image: linear-gradient(360deg,rgba(255, 255, 255, 0) 28%,var(--floating-background) 28%) !important;"
-      );
+      floating.addClass("highlightr-style-demo-floating");
       demo.appendChild(floating);
       demo.appendChild(activeDocument.createTextNode(" "));
 
       const realistic = createEl("span", { text: "Realistic" });
-      realistic.setAttribute(
-        "style",
-        "background:#9CF09CCC;margin: 0 -0.05em;padding: 0.1em 0.4em;border-radius: 0.8em 0.3em;-webkit-box-decoration-break: clone;box-decoration-break: clone;text-shadow: 0 0 0.75em var(--background-primary-alt);"
-      );
+      realistic.addClass("highlightr-style-demo-realistic");
       demo.appendChild(realistic);
       demo.appendChild(activeDocument.createTextNode(" "));
 
       const rounded = createEl("span", { text: "Rounded" });
-      rounded.setAttribute(
-        "style",
-        "background:#CCA9FFCC;margin: 0 -0.05em;padding: 0.125em 0.15em;border-radius: 0.2em;-webkit-box-decoration-break: clone;box-decoration-break: clone;"
-      );
+      rounded.addClass("highlightr-style-demo-rounded");
       demo.appendChild(rounded);
 
       return demo;
