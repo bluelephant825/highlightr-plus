@@ -2,12 +2,10 @@ export function debounce<T extends (...args: unknown[]) => unknown>(func: T, wai
   let timeout: number | null = null;
 
   return function executedFunction(this: unknown, ...args: Parameters<T>) {
-    const context = this;
-
     const later = () => {
       timeout = null;
       if (!immediate) {
-        func.apply(context, args);
+        func.apply(this, args);
       }
     };
 
@@ -17,7 +15,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(func: T, wai
     }
     timeout = window.setTimeout(later, wait) as unknown as number;
     if (callNow) {
-      func.apply(context, args);
+      func.apply(this, args);
     }
   };
 }

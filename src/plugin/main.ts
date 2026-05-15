@@ -336,7 +336,8 @@ const colorValue = this.settings.highlighters[highlighterKey];
     };
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        const savedSettings = await this.loadData() as Partial<HighlightrSettings>;
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, savedSettings);
         this.settings.highlighterClasses = this.settings.highlighterClasses || {};
         this.settings.highlighterActivity = this.settings.highlighterActivity || {};
         this.settings.highlighterOrder = this.settings.highlighterOrder || [];

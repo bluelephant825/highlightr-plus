@@ -334,9 +334,9 @@ export class NotesTab extends ItemView {
     // Enhanced force update method
     public forceUpdate(): void {
         try {
-            const container = this.containerEl.querySelector('.highlightr-notes-container');
-            if (container && (container as any).instanceOf(HTMLDivElement)) {
-                void this.updateNotesList(container as HTMLDivElement);
+            const container = this.containerEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
+            if (container instanceof HTMLDivElement) {
+                void this.updateNotesList(container);
             } else {
                 // If container doesn't exist, create it
                 const newContainer = this.containerEl.createDiv({
@@ -355,9 +355,9 @@ export class NotesTab extends ItemView {
 
     async onOpen(): Promise<void> {
         try {
-            const existingContainer = this.containerEl.querySelector('.highlightr-notes-container');
-            const container = existingContainer && (existingContainer as any).instanceOf(HTMLDivElement)
-                ? existingContainer as HTMLDivElement
+            const existingContainer = this.containerEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
+            const container = existingContainer instanceof HTMLDivElement
+                ? existingContainer
                 : this.containerEl.createDiv({ cls: "highlightr-notes-container" });
 
             // Register for workspace events
