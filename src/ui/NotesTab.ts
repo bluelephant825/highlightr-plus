@@ -335,7 +335,7 @@ export class NotesTab extends ItemView {
     public forceUpdate(): void {
         try {
             const container = this.containerEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
-            if (container instanceof HTMLDivElement) {
+            if (container && container.instanceOf(HTMLDivElement)) {
                 void this.updateNotesList(container);
             } else {
                 // If container doesn't exist, create it
@@ -356,7 +356,7 @@ export class NotesTab extends ItemView {
     async onOpen(): Promise<void> {
         try {
             const existingContainer = this.containerEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
-            const container = existingContainer instanceof HTMLDivElement
+            const container = existingContainer && existingContainer.instanceOf(HTMLDivElement)
                 ? existingContainer
                 : this.containerEl.createDiv({ cls: "highlightr-notes-container" });
 
