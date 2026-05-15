@@ -131,6 +131,47 @@
   box-decoration-break: clone;
 }
 
+/* Apply selected highlighter styles to sidebar highlight elements */
+.highlightr-lowlight .highlight-text,
+.highlightr-lowlight .highlightr-formatted-content .highlight-text {
+  --lowlight-background: var(--background-primary);
+  border-radius: 0;
+  background-color: var(--hltr-color);
+  background-image: linear-gradient(360deg, rgba(255,255,255,0) 40%, var(--lowlight-background) 40%);
+  background-repeat: no-repeat;
+}
+
+.highlightr-floating .highlight-text,
+.highlightr-floating .highlightr-formatted-content .highlight-text {
+  --floating-background: var(--background-primary);
+  border-radius: 0;
+  padding-bottom: 5px;
+  background-color: var(--hltr-color);
+  background-image: linear-gradient(360deg, rgba(255,255,255,0) 28%, var(--floating-background) 28%);
+  background-repeat: no-repeat;
+}
+
+.highlightr-rounded .highlight-text,
+.highlightr-rounded .highlightr-formatted-content .highlight-text {
+  margin: 0 -0.05em;
+  padding: 0.125em 0.15em;
+  border-radius: 0.2em;
+  background-color: var(--hltr-color);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.highlightr-realistic .highlight-text,
+.highlightr-realistic .highlightr-formatted-content .highlight-text {
+  margin: 0 -0.05em;
+  padding: 0.1em 0.4em;
+  border-radius: 0.8em 0.3em;
+  background-color: var(--hltr-color);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  text-shadow: 0 0 0.75em var(--background-primary-alt);
+}
+
 .highlightr-annotation-modal {
   width: 500px;
   height: 500px;
@@ -476,12 +517,6 @@ HIGHLIGHTR SUPPORT
   padding: 0;
 }
 
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-}
-
 .themed-color-wrapper > div + div {
   margin-top: 6px;
 }
@@ -820,6 +855,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   .pcr-app .pcr-selection .pcr-color-chooser:active,
   .pcr-app .pcr-selection .pcr-color-opacity:active {
     cursor: grabbing;
+}
 
 .pcr-app[data-theme="nano"] .pcr-interaction {
   padding: 0 0.6em 0.6em 0.6em;
@@ -935,6 +971,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-chooser .pcr-slider {
     background: linear-gradient(to right, red, #ffff00, lime, cyan, blue, #ff00ff, red);
+}
 
 .pcr-app[data-theme="nano"] .pcr-selection .pcr-color-opacity .pcr-slider {
   background:
@@ -954,8 +991,9 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 
 .note-bubble {
   position: absolute;
-  background-color: #cccccc;
-  border: 1px solid #aaaaaa;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: var(--text-normal, var(--text));
+  border: 1px solid var(--background-modifier-border, rgba(170, 170, 170, 0.9));
   padding: 5px;
   z-index: 1000;
   pointer-events: none;
@@ -965,20 +1003,33 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   border-radius: 8px;
 }
 
+.highlightr-notes-container {
+  margin-top: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
 .highlightr-formatted-content {
-  overflow-y: auto;
-  max-height: 100vh;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  width: 100% !important;
+  padding: 0.5rem !important;
+  box-sizing: border-box !important;
 }
 
 .highlightr-formatted-content h3,
 .highlightr-formatted-content h4 {
-  margin-left: 10px;
-}
-
-.highlightr-notes-container {
-  order: -1;
-  margin-top: 0;
-  padding-top: 1em;
+  margin: 0 0 0.5rem;
 }
 
 .highlightr-empty-state {
@@ -986,9 +1037,13 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .highlight-item {
-  margin: 10px;
-  padding: 5px;
-    border: 1px solid #dddddd;
+  margin: 10px 0;
+  padding: 14px;
+  border: 1px solid var(--background-modifier-border, #dddddd);
+  background-color: var(--background-secondary, #f5f5f7);
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
 
 .highlight-text {
   margin-bottom: 8px;
@@ -1007,12 +1062,13 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 }
 
 .highlight-note .note-icon {
-  margin-right: 4px;
+  margin-right: 6px;
   margin-top: 2px;
 }
 
 .highlight-note-content {
   flex: 1;
+  color: #4b6383;
 }
 
 .highlight-note-content ul,
@@ -1037,26 +1093,24 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
 
 .highlight-tag {
   font-family: "nohash", var(--font-text);
-  display: inline;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: var(--tag-padding-y, 0.15em) var(--tag-padding-x, 0.6em);
   margin-right: 4px;
-  background-color: var(--tag-background);
-  border: var(--tag-border-width) solid var(--tag-border-color);
-  border-radius: var(--tag-radius);
-  color: var(--tag-color);
+  background-color: var(--tag-background, rgba(255, 255, 255, 0.15));
+  border: var(--tag-border-width, 1px) solid var(--tag-border-color, rgba(0, 0, 0, 0.1));
+  border-radius: var(--tag-radius, 999px);
+  color: var(--tag-color, var(--text-normal, #333333));
   font-size: 0.875em;
-  font-weight: var(--tag-weight);
-  text-decoration: var(--tag-decoration);
+  font-weight: var(--tag-weight, 500);
+  text-decoration: var(--tag-decoration, none);
   line-height: 1;
 }
 
-.markdown-preview-view .highlight-tag {
-  padding: 0;
-}
-
+.markdown-preview-view .highlight-tag,
 .cm-s-obsidian .highlight-tag {
-  padding: var(--tag-padding-y) var(--tag-padding-x);
-}
-
-.highlightr-formatted-content .highlight-tag {
-  padding: var(--tag-padding-y) var(--tag-padding-x);
+  display: inline-flex;
+  padding: var(--tag-padding-y, 0.15em) var(--tag-padding-x, 0.6em);
 }

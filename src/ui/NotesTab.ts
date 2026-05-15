@@ -291,12 +291,12 @@ export class NotesTab extends ItemView {
 
             const textEl = highlightEl.createDiv({ cls: "highlight-text" });
             if (color) {
-                textEl.style.background = color;
+                textEl.style.setProperty('--hltr-color', color);
             } else if (cssClass) {
                 textEl.addClass(cssClass);
                 const resolvedClassColor = this.resolveColorFromClass(cssClass);
                 if (resolvedClassColor) {
-                    textEl.style.background = resolvedClassColor;
+                    textEl.style.setProperty('--hltr-color', resolvedClassColor);
                 }
             }
             this.renderHighlightText(textEl, text);
@@ -334,12 +334,12 @@ export class NotesTab extends ItemView {
     // Enhanced force update method
     public forceUpdate(): void {
         try {
-            const container = this.containerEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
+            const container = this.contentEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
             if (container && container.instanceOf(HTMLDivElement)) {
                 void this.updateNotesList(container);
             } else {
-                // If container doesn't exist, create it
-                const newContainer = this.containerEl.createDiv({
+                // If container doesn't exist, create it inside the view content
+                const newContainer = this.contentEl.createDiv({
                     cls: "highlightr-notes-container"
                 });
                 void this.updateNotesList(newContainer);
@@ -355,10 +355,14 @@ export class NotesTab extends ItemView {
 
     async onOpen(): Promise<void> {
         try {
-            const existingContainer = this.containerEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
+            const existingContainer = this.contentEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
             const container = existingContainer && existingContainer.instanceOf(HTMLDivElement)
                 ? existingContainer
-                : this.containerEl.createDiv({ cls: "highlightr-notes-container" });
+                : this.contentEl.createDiv({ cls: "highlightr-notes-container" });
+
+            container.style.flex = '1 1 auto';
+            container.style.minHeight = '0';
+            container.style.width = '100%';
 
             // Register for workspace events
             this.registerEvent(

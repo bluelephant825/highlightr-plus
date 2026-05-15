@@ -302,22 +302,27 @@ const colorValue = this.settings.highlighters[highlighterKey];
 
     updateStyle = () => {
         const activeDoc = this.getActiveDocument();
-        activeDoc.body.classList.toggle(
-            "highlightr-lowlight",
-            this.settings.highlighterStyle === "lowlight"
-        );
-        activeDoc.body.classList.toggle(
-            "highlightr-floating",
-            this.settings.highlighterStyle === "floating"
-        );
-        activeDoc.body.classList.toggle(
-            "highlightr-rounded",
-            this.settings.highlighterStyle === "rounded"
-        );
-        activeDoc.body.classList.toggle(
-            "highlightr-realistic",
-            this.settings.highlighterStyle === "realistic"
-        );
+        // Apply style classes to both the active document body and the workspace container
+        const applyClass = (el: Element | null, cls: string, cond: boolean) => {
+            if (!el) return;
+            el.classList.toggle(cls, cond);
+        };
+
+        const condLow = this.settings.highlighterStyle === "lowlight";
+        const condFloat = this.settings.highlighterStyle === "floating";
+        const condRound = this.settings.highlighterStyle === "rounded";
+        const condReal = this.settings.highlighterStyle === "realistic";
+
+        applyClass(activeDoc?.body ?? null, "highlightr-lowlight", condLow);
+        applyClass(activeDoc?.body ?? null, "highlightr-floating", condFloat);
+        applyClass(activeDoc?.body ?? null, "highlightr-rounded", condRound);
+        applyClass(activeDoc?.body ?? null, "highlightr-realistic", condReal);
+
+        const workspaceEl = this.app?.workspace?.containerEl ?? null;
+        applyClass(workspaceEl, "highlightr-lowlight", condLow);
+        applyClass(workspaceEl, "highlightr-floating", condFloat);
+        applyClass(workspaceEl, "highlightr-rounded", condRound);
+        applyClass(workspaceEl, "highlightr-realistic", condReal);
     };
 
     onunload() {
