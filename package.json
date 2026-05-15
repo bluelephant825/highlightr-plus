@@ -1,6 +1,6 @@
 {
   "name": "highlightr-plus",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "homepage": "https://github.com/bluelephant825/highlightr-plus",
   "description": "Highlightr+ is a plugin that adds a simple highlighting modal for better multi-colored highlighting support 🎨.",
   "type": "module",

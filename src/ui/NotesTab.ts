@@ -360,9 +360,8 @@ export class NotesTab extends ItemView {
                 ? existingContainer
                 : this.contentEl.createDiv({ cls: "highlightr-notes-container" });
 
-            container.style.flex = '1 1 auto';
-            container.style.minHeight = '0';
-            container.style.width = '100%';
+            // Layout and sizing are handled via CSS (.highlightr-notes-container)
+            // Avoid inline styles to keep theming and maintainability intact.
 
             // Register for workspace events
             this.registerEvent(
