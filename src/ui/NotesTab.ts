@@ -175,7 +175,7 @@ export class NotesTab extends ItemView {
         const element = node as HTMLElement;
         const tagName = element.tagName.toLowerCase();
 
-        if (tagName === 'sub' || tagName === 'sup') {
+        if (tagName === 'sub' || tagName === 'sup' || tagName === 'code') {
             const safeElement = doc.createElement(tagName);
             Array.from(element.childNodes).forEach((child) => this.appendSanitized(child, safeElement));
             target.appendChild(safeElement);
@@ -185,10 +185,34 @@ export class NotesTab extends ItemView {
         Array.from(element.childNodes).forEach((child) => this.appendSanitized(child, target));
     }
 
-    private renderHighlightText(container: HTMLElement, text: string): void {
+    private renderHtmlFragment(container: HTMLElement, text: string): void {
+        if (!text) {
+            return;
+        }
         const parser = new DOMParser();
         const parsed = parser.parseFromString(text, 'text/html');
         Array.from(parsed.body.childNodes).forEach((node) => this.appendSanitized(node, container));
+    }
+
+    private renderHighlightText(container: HTMLElement, text: string): void {
+        const inlineCodeRegex = /`([^`]+)`/g;
+        let cursor = 0;
+        let match: RegExpExecArray | null;
+        const doc = this.getActiveDocument();
+
+        while ((match = inlineCodeRegex.exec(text)) !== null) {
+            const [fullMatch, inlineCode] = match;
+            const beforeText = text.slice(cursor, match.index);
+            this.renderHtmlFragment(container, beforeText);
+
+            const codeEl = doc.createElement('code');
+            codeEl.textContent = this.decodeHtmlEntities(inlineCode);
+            container.appendChild(codeEl);
+
+            cursor = match.index + fullMatch.length;
+        }
+
+        this.renderHtmlFragment(container, text.slice(cursor));
     }
 
     private renderNoteText(container: HTMLElement, text: string): void {
