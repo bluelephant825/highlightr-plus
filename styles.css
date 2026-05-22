@@ -80,14 +80,10 @@
   margin: 0 -0.05em;
   padding: 0.125em 0.15em;
   border-radius: 0.2em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 .highlightr-rounded span.cm-highlight {
   border-radius: 0.2em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 .highlightr-rounded .cm-s-obsidian span.cm-highlight {
@@ -97,8 +93,6 @@
 .highlightr-rounded .cm-highlight + span.cm-formatting-highlight {
   padding-left: 0em;
   padding-right: 0.15em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 /*realistic*/
@@ -107,8 +101,6 @@
   margin: 0 -0.05em;
   padding: 0.1em 0.4em;
   border-radius: 0.8em 0.3em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
   text-shadow: 0 0 0.75em var(--background-primary-alt);
 }
 
@@ -118,8 +110,6 @@
 
 .highlightr-realistic .cm-s-obsidian span.cm-highlight {
   padding: 0.15em 0.25em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
   text-shadow: 0 0 0.75em var(--background-primary-alt);
 }
 
@@ -127,8 +117,6 @@
   margin: 0 0 0 -0.05em;
   padding: 0.15em 0.25em;
   border-radius: 0.8em 0 0 0.3em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 /* Apply selected highlighter styles to sidebar highlight elements */
@@ -157,8 +145,6 @@
   padding: 0.125em 0.15em;
   border-radius: 0.2em;
   background-color: var(--hltr-color);
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 .highlightr-realistic .highlight-text,
@@ -167,8 +153,6 @@
   padding: 0.1em 0.4em;
   border-radius: 0.8em 0.3em;
   background-color: var(--hltr-color);
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
   text-shadow: 0 0 0.75em var(--background-primary-alt);
 }
 
@@ -241,8 +225,6 @@
   margin: 0 -0.05em;
   padding: 0.1em 0.4em;
   border-radius: 0.8em 0.3em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
   text-shadow: 0 0 0.75em var(--background-primary-alt);
 }
 
@@ -251,8 +233,6 @@
   margin: 0 -0.05em;
   padding: 0.125em 0.15em;
   border-radius: 0.2em;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 
@@ -280,15 +260,12 @@ button.copy-highlights {
 details summary.highlight-summary:before {
   width: 2em;
   height: 2em;
-  content: "☐";
+  content: "▶";
   font-size: 9px;
   cursor: pointer;
   margin-right: 5px;
   display: inline-block;
   vertical-align: 0.05em;
-  background-color: currentColor;
-  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="black" d="M10.707 17.707L16.414 12l-5.707-5.707l-1.414 1.414L13.586 12l-4.293 4.293z"></path></svg>');
-  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path fill="black" d="M10.707 17.707L16.414 12l-5.707-5.707l-1.414 1.414L13.586 12l-4.293 4.293z"></path></svg>');
 }
 
 details[open] summary.highlight-summary::before {
