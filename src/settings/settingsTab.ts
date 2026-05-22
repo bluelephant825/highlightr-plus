@@ -8,6 +8,7 @@ import {
   Modal,
   MarkdownRenderer,
   TFile,
+  setIcon,
 } from "obsidian";
 import Pickr from "@simonwep/pickr";
 import Sortable from "sortablejs";
@@ -461,10 +462,14 @@ export class HighlightrSettingTab extends PluginSettingTab {
       .setName(highlighter)
       .setDesc(this.plugin.settings.highlighters[highlighter]);
 
-    highlighterSettingItem.infoEl.createEl("div", {
+    const classNameEl = highlighterSettingItem.infoEl.createEl("div", {
       cls: "highlighter-setting-classname",
       text: `class="hltr-${highlighterClassName.toLowerCase()}"`,
     });
+    const descriptionEl = highlighterSettingItem.infoEl.getElementsByClassName("setting-item-description")[0] as HTMLElement | undefined;
+    if (descriptionEl) {
+      highlighterSettingItem.infoEl.insertBefore(classNameEl, descriptionEl);
+    }
 
     const hotkeyLabel = this.getHighlighterHotkeyLabel(highlighter);
     if (hotkeyLabel) {
@@ -505,7 +510,7 @@ export class HighlightrSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    new Setting(containerEl).setName("Highlightr").setHeading();
+    new Setting(containerEl).setName("Highlightr+ Settings").setHeading();
     const createdBy = containerEl.createEl("p", { text: "Created by " });
     createdBy.createEl("a", {
       text: "Chetachi 👩🏽‍💻",
@@ -516,7 +521,6 @@ export class HighlightrSettingTab extends PluginSettingTab {
       text: "Olivier 👨🏼‍💻",
       href: "https://github.com/bluelephant825",
     });
-    new Setting(containerEl).setName("Plugin").setHeading();
 
     new Setting(containerEl)
       .setName("Choose highlight method")
@@ -729,7 +733,7 @@ If you give a plugin a wide scope (letting it scan everything), it has to read t
     colorInput.inputEl.addClass("highlighter-settings-color");
 
     const classInput = new TextComponent(highlighterSetting.controlEl);
-    classInput.setPlaceholder("Class name");
+    classInput.setPlaceholder("Class name (optional)");
     classInput.inputEl.addClass("highlighter-settings-class");
 
     const valueInput = new TextComponent(highlighterSetting.controlEl);
@@ -870,6 +874,46 @@ If you give a plugin a wide scope (letting it scan everything), it has to read t
       .setName("Active highlight colors")
       .setHeading();
     activeHeader.setClass("highlightr-section-heading");
+
+    const activeInfo = activeHeader.nameEl.createSpan({ cls: "hltr-active-colors-info" });
+    const activeInfoIcon = activeInfo.createSpan();
+    setIcon(activeInfoIcon, "info");
+    const activeInfoBubble = activeInfo.createEl("div", {
+      cls: "hltr-active-colors-info-bubble",
+      text: "Appears in the context menu and the command palette.",
+    });
+
+    let activeInfoHideTimer: number | null = null;
+
+    const showActiveInfoBubble = () => {
+      if (activeInfoHideTimer !== null) {
+        window.clearTimeout(activeInfoHideTimer);
+        activeInfoHideTimer = null;
+      }
+      const rect = activeInfo.getBoundingClientRect();
+      const width = 200;
+      const margin = 12;
+      const left = Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin));
+      const top = Math.min(window.innerHeight - 80, rect.bottom + 8);
+      activeInfoBubble.style.left = `${left}px`;
+      activeInfoBubble.style.top = `${top}px`;
+      activeInfoBubble.classList.add("is-visible");
+    };
+
+    const scheduleHideActiveInfoBubble = () => {
+      if (activeInfoHideTimer !== null) {
+        window.clearTimeout(activeInfoHideTimer);
+      }
+      activeInfoHideTimer = window.setTimeout(() => {
+        activeInfoBubble.classList.remove("is-visible");
+        activeInfoHideTimer = null;
+      }, 150);
+    };
+
+    activeInfo.addEventListener("mouseenter", showActiveInfoBubble);
+    activeInfo.addEventListener("mouseleave", scheduleHideActiveInfoBubble);
+    activeInfoBubble.addEventListener("mouseenter", showActiveInfoBubble);
+    activeInfoBubble.addEventListener("mouseleave", scheduleHideActiveInfoBubble);
 
     const activeContainer = containerEl.createEl("div", {
       cls: "HighlightrSettingsTabsContainer",

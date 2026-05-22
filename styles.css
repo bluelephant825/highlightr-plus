@@ -351,6 +351,7 @@ button.HighlightrSettingsButton {
   padding: 4px 14px;
   border-radius: 6px;
   height: fit-content;
+  margin-right: 14px;
 }
 
 button.HighlightrSettingsButton svg {
@@ -377,9 +378,15 @@ button.HighlightrSettingsButton svg {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
   gap: 16px;
-  padding-right: 15px;
 }
 
+.highlighter-setting-item .setting-item-info .setting-item-description {
+  color: var(--text-normal);
+}
+
+.highlighter-setting-item .setting-item-info .highlighter-setting-classname {
+  font-size: var(--font-ui-small);
+}
 
 .highlighterplugin-setting-item .setting-item-control {
   justify-content: space-between;
@@ -412,9 +419,12 @@ button:not(.mod-cta):not(
 /**/
 .highlighter-setting-icon {
   display: flex;
-  height: 24px;
-  width: 24px;
+  height: 33px;
+  width: 30px;
   margin-left: 12px;
+  background-color: darkslategrey;
+  padding: 5px;
+  border-radius: 7px;
 }
 
 .highlighter-item-draggable {
@@ -540,6 +550,43 @@ button:not(.mod-cta):not(
 }
 
 .hltr-vault-scan-info-bubble.is-visible {
+  display: block;
+}
+
+.hltr-active-colors-info {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  color: var(--text-muted);
+  cursor: help;
+}
+
+.hltr-active-colors-info svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.hltr-active-colors-info-bubble {
+  position: fixed;
+  width: 200px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0px 6px 28px rgb(31 38 135 / 20%);
+  padding: 8px 10px;
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  font-weight: normal;
+  line-height: 1.3;
+  z-index: 9999;
+  display: none;
+}
+
+.hltr-active-colors-info-bubble.is-visible {
   display: block;
 }
 
