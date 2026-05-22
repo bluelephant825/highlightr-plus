@@ -136,9 +136,87 @@ export default class HighlightrPlugin extends Plugin {
         };
     }
 
-    private getPreviewMarkOccurrence(previewRoot: Element, markEl: HTMLElement): number {
-        const marks = Array.from(previewRoot.querySelectorAll('mark'));
-        return marks.indexOf(markEl);
+    private getMarkAttributeValue(attributes: string, name: string): string {
+        const match = attributes.match(new RegExp(`\\b${name}="([^"]*)"`, "i"));
+        if (!match) {
+            return "";
+        }
+        return match[1]
+            .replace(/&quot;/g, '"')
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&amp;/g, "&");
+    }
+
+    private normalizeMarkText(value: string): string {
+        return value
+            .replace(/`<\s*([^`<>\s\/]+)\s*>`/g, " $1 ")
+            .replace(/<[^>]*>/g, " ")
+            .replace(/&nbsp;/gi, " ")
+            .replace(/&quot;/g, '"')
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&amp;/g, "&")
+            .replace(/<\s*([^<>\s\/]+)\s*>/g, " $1 ")
+            .replace(/`/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    private findMarkRangeFromPreviewElement(
+        editor: EnhancedEditor,
+        markEl: HTMLElement,
+        preferredOffset?: number,
+    ): { from: { line: number; ch: number }; to: { line: number; ch: number } } | null {
+        if (!editor.offsetToPos) {
+            return null;
+        }
+
+        const content = editor.getValue();
+        const targetText = this.normalizeMarkText(markEl.innerHTML);
+        const targetNote = markEl.getAttribute("data-note") ?? "";
+        const targetTags = markEl.getAttribute("data-tags") ?? "";
+        const matchRegex = /<mark\b([^>]*)>([\s\S]*?)<\/mark>/gi;
+        const candidates: Array<{ start: number; end: number; score: number }> = [];
+
+        let match: RegExpExecArray | null;
+        while ((match = matchRegex.exec(content)) !== null) {
+            const attributes = match[1] ?? "";
+            const inner = match[2] ?? "";
+            const text = this.normalizeMarkText(inner);
+            if (text !== targetText) {
+                continue;
+            }
+
+            let score = 10;
+            const note = this.getMarkAttributeValue(attributes, "data-note");
+            const tags = this.getMarkAttributeValue(attributes, "data-tags");
+            if (note === targetNote) {
+                score += 3;
+            }
+            if (tags === targetTags) {
+                score += 3;
+            }
+            candidates.push({ start: match.index, end: match.index + match[0].length, score });
+        }
+
+        if (candidates.length === 0) {
+            return null;
+        }
+
+        const target = preferredOffset ?? 0;
+        candidates.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+            return Math.abs(a.start - target) - Math.abs(b.start - target);
+        });
+
+        const selected = candidates[0];
+        return {
+            from: editor.offsetToPos(selected.start),
+            to: editor.offsetToPos(selected.end),
+        };
     }
 
     private withPreservedEditorScroll(applyUpdate: () => void): void {
@@ -226,28 +304,12 @@ export default class HighlightrPlugin extends Plugin {
         menuWithNativeToggle.setUseNativeMenu?.(false);
 
         if (activeMarkEl) {
-            const markHtml = activeMarkEl.outerHTML;
-            const previewOccurrence = this.getPreviewMarkOccurrence(previewRoot, activeMarkEl);
-            if (previewOccurrence >= 0) {
-                const occurrenceRange = this.findRangeByTextOccurrence(editor, markHtml, previewOccurrence);
-                if (occurrenceRange) {
-                    editor.setSelection(occurrenceRange.from, occurrenceRange.to);
-                } else {
-                    const nearestRange = this.findNearestRangeByText(editor, markHtml, clickOffset);
-                    if (!nearestRange) {
-                        await restorePreview();
-                        return;
-                    }
-                    editor.setSelection(nearestRange.from, nearestRange.to);
-                }
-            } else {
-                const nearestRange = this.findNearestRangeByText(editor, markHtml, clickOffset);
-                if (!nearestRange) {
-                    await restorePreview();
-                    return;
-                }
-                editor.setSelection(nearestRange.from, nearestRange.to);
+            const resolvedRange = this.findMarkRangeFromPreviewElement(editor, activeMarkEl, clickOffset);
+            if (!resolvedRange) {
+                await restorePreview();
+                return;
             }
+            editor.setSelection(resolvedRange.from, resolvedRange.to);
         } else if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
             const startNode = range.startContainer;
