@@ -473,6 +473,76 @@ button:not(.mod-cta):not(
   box-shadow: 0px 3px 32px rgb(31 38 135 / 15%);
 }
 
+.hltr-vault-scan-info {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  color: var(--text-muted);
+  cursor: help;
+}
+
+.hltr-vault-scan-info svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.hltr-vault-scan-info-bubble {
+  position: fixed;
+  width: min(610px, 80vw);
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0px 6px 28px rgb(31 38 135 / 20%);
+  padding: 12px;
+  color: var(--text-normal);
+  z-index: 9999;
+  display: none;
+}
+
+.hltr-vault-scan-info-bubble > :first-child {
+  margin-top: 0;
+}
+
+.hltr-vault-scan-info-bubble > :last-child {
+  margin-bottom: 0;
+}
+
+.hltr-vault-scan-info-bubble p,
+.hltr-vault-scan-info-bubble ul,
+.hltr-vault-scan-info-bubble ol,
+.hltr-vault-scan-info-bubble table,
+.hltr-vault-scan-info-bubble hr,
+.hltr-vault-scan-info-bubble pre,
+.hltr-vault-scan-info-bubble blockquote {
+  margin-top: 0.45em;
+  margin-bottom: 0.45em;
+}
+
+.hltr-vault-scan-info-bubble h1,
+.hltr-vault-scan-info-bubble h2,
+.hltr-vault-scan-info-bubble h3,
+.hltr-vault-scan-info-bubble h4,
+.hltr-vault-scan-info-bubble h5,
+.hltr-vault-scan-info-bubble h6 {
+  margin-top: 0.7em;
+  margin-bottom: 0.35em;
+  line-height: 1.25;
+}
+
+.hltr-vault-scan-info-bubble li + li {
+  margin-top: 0.15em;
+}
+
+.hltr-vault-scan-info-bubble.is-visible {
+  display: block;
+}
+
 /*----------------------------------------------------------------
 HIGHLIGHTR SUPPORT
 ----------------------------------------------------------------*/

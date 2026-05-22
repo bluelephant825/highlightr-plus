@@ -631,6 +631,8 @@ const colorValue = this.settings.highlighters[highlighterKey];
         this.settings.highlighterClasses = this.settings.highlighterClasses || {};
         this.settings.highlighterActivity = this.settings.highlighterActivity || {};
         this.settings.highlighterOrder = this.settings.highlighterOrder || [];
+        this.settings.conflictScanScope = this.settings.conflictScanScope || "active-file";
+        this.settings.conflictScanFolder = this.settings.conflictScanFolder || "";
 
         const knownHighlighters = Array.from(new Set([
             ...Object.keys(this.settings.highlighters),

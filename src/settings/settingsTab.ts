@@ -6,6 +6,7 @@ import {
   Notice,
   TextComponent,
   Modal,
+  MarkdownRenderer,
   TFile,
 } from "obsidian";
 import Pickr from "@simonwep/pickr";
@@ -201,8 +202,38 @@ export class HighlightrSettingTab extends PluginSettingTab {
     return colorMatch?.[1]?.trim() ?? null;
   }
 
+  private getConflictScanFiles(): TFile[] {
+    const scope = this.plugin.settings.conflictScanScope;
+    if (scope === "active-file") {
+      const activeFile = this.app.workspace.getActiveFile();
+      return activeFile ? [activeFile] : [];
+    }
+    const markdownFiles = this.app.vault.getMarkdownFiles();
+    if (scope === "folder") {
+      const folder = this.plugin.settings.conflictScanFolder.trim().replace(/^\/+|\/+$/g, "");
+      if (!folder) {
+        return [];
+      }
+      const prefix = `${folder}/`;
+      return markdownFiles.filter((file) => file.path === folder || file.path.startsWith(prefix));
+    }
+    return markdownFiles;
+  }
+
+  private getConflictScanScopeLabel(): string {
+    const scope = this.plugin.settings.conflictScanScope;
+    if (scope === "active-file") {
+      return "active file";
+    }
+    if (scope === "folder") {
+      const folder = this.plugin.settings.conflictScanFolder.trim();
+      return folder ? `folder: ${folder}` : "folder";
+    }
+    return "entire vault";
+  }
+
   private async scanClassConflictSummary(classToken: string): Promise<ClassConflictSummary> {
-    const files = this.app.vault.getMarkdownFiles();
+    const files = this.getConflictScanFiles();
     let totalMarks = 0;
     let fileCount = 0;
     const inlineColorCounts: Record<string, number> = {};
@@ -342,7 +373,7 @@ export class HighlightrSettingTab extends PluginSettingTab {
     classToken: string,
     targetColorHex: string,
   ): Promise<{ fileCount: number; updatedMarks: number }> {
-    const files = this.app.vault.getMarkdownFiles();
+    const files = this.getConflictScanFiles();
     let fileCount = 0;
     let updatedMarks = 0;
 
@@ -558,6 +589,132 @@ export class HighlightrSettingTab extends PluginSettingTab {
 
     stylesSetting.infoEl.appendChild(styleDemo());
 
+    const vaultScanSetting = new Setting(containerEl)
+      .setName("Vault scan scope for conflict checks")
+      .setDesc("Controls which files are scanned when checking and migrating class conflicts. Narrower scope reduces path exposure.")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("active-file", "Active file only")
+          .addOption("folder", "Specific folder")
+          .addOption("vault", "Entire vault")
+          .setValue(this.plugin.settings.conflictScanScope)
+          .onChange(async (value) => {
+            this.plugin.settings.conflictScanScope = value as "active-file" | "folder" | "vault";
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+    const vaultScanInfo = vaultScanSetting.nameEl.createSpan({ cls: "hltr-vault-scan-info" });
+    const vaultScanInfoIcon = activeDocument.createElementNS("http://www.w3.org/2000/svg", "svg");
+    vaultScanInfoIcon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    vaultScanInfoIcon.setAttribute("width", "24");
+    vaultScanInfoIcon.setAttribute("height", "24");
+    vaultScanInfoIcon.setAttribute("viewBox", "0 0 24 24");
+    vaultScanInfoIcon.setAttribute("fill", "none");
+    vaultScanInfoIcon.setAttribute("stroke", "currentColor");
+    vaultScanInfoIcon.setAttribute("stroke-width", "2");
+    vaultScanInfoIcon.setAttribute("stroke-linecap", "round");
+    vaultScanInfoIcon.setAttribute("stroke-linejoin", "round");
+    vaultScanInfoIcon.addClass("lucide", "lucide-info-icon", "lucide-info");
+    const vaultScanInfoCircle = activeDocument.createElementNS("http://www.w3.org/2000/svg", "circle");
+    vaultScanInfoCircle.setAttribute("cx", "12");
+    vaultScanInfoCircle.setAttribute("cy", "12");
+    vaultScanInfoCircle.setAttribute("r", "10");
+    const vaultScanInfoPath1 = activeDocument.createElementNS("http://www.w3.org/2000/svg", "path");
+    vaultScanInfoPath1.setAttribute("d", "M12 16v-4");
+    const vaultScanInfoPath2 = activeDocument.createElementNS("http://www.w3.org/2000/svg", "path");
+    vaultScanInfoPath2.setAttribute("d", "M12 8h.01");
+    vaultScanInfoIcon.appendChild(vaultScanInfoCircle);
+    vaultScanInfoIcon.appendChild(vaultScanInfoPath1);
+    vaultScanInfoIcon.appendChild(vaultScanInfoPath2);
+    vaultScanInfo.appendChild(vaultScanInfoIcon);
+    const vaultScanInfoBubble = vaultScanInfo.createEl("div", { cls: "hltr-vault-scan-info-bubble" });
+    const infoMarkdown = `Think of this setting like a **digital security guard** for your Obsidian notes.
+
+When you install a plugin that alters how things look or work (like changing styles or managing "classes"), it needs to look through your files to make sure its instructions don't smash into another plugin's instructions. That's a **conflict check**.
+
+Here is exactly what that setting means, broken down into plain English:
+
+## 1. Vault Scan Scope
+
+* **The Vault:** This is your entire Obsidian project—the main folder where all your notes, images, and folders live.
+* **The Scope:** This just means the boundary line. Changing the scope tells the plugin: "You are only allowed to look inside this specific folder," instead of letting it wander through your whole vault.
+
+## 2. Class Conflicts
+
+In web development and plugins, a **class** is like a label you put on a note or a piece of text to give it special powers or styles (for example, a class called important-note might make the background glowing red).
+
+If two different plugins try to use the exact same class name for completely different things, Obsidian gets confused. This setting controls how far the plugin searches to find and fix (migrate) those identical, conflicting labels.
+
+## 3. Path Exposure (The Privacy Part)
+
+This is the most important part of the sentence. Every file on your computer has a "path" (like Documents/School/ObsidianVault/SecretDiary.md).
+
+If you give a plugin a wide scope (letting it scan everything), it has to read the file paths of every single note you own to do its job. If you give it a narrower scope (restricting it to just one folder), it never sees the names or paths of your other private files. It keeps your vault's structure private.
+
+---
+
+### Summary Table
+
+| Scope Setting | What it does | Pros | Cons |
+| --- | --- | --- | --- |
+| **Wide / Full Vault** | Scans every single note you have. | Catches 100% of conflicts everywhere. | The plugin sees all your file names/paths. |
+| **Narrow / Restricted** | Only scans a specific folder. | High privacy; super fast scanning. | Might miss a conflict hidden in an un-scanned folder. |`;
+    vaultScanInfoBubble.empty();
+    void MarkdownRenderer.renderMarkdown(infoMarkdown, vaultScanInfoBubble, "", this.plugin);
+
+    let vaultScanInfoHideTimer: number | null = null;
+
+    const showVaultScanInfoBubble = () => {
+      if (vaultScanInfoHideTimer !== null) {
+        window.clearTimeout(vaultScanInfoHideTimer);
+        vaultScanInfoHideTimer = null;
+      }
+      const rect = vaultScanInfo.getBoundingClientRect();
+      const width = Math.min(610, Math.floor(window.innerWidth * 0.8));
+      const margin = 12;
+      const left = Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin));
+      const top = Math.min(window.innerHeight - 80, rect.bottom + 8);
+      vaultScanInfoBubble.style.left = `${left}px`;
+      vaultScanInfoBubble.style.top = `${top}px`;
+      vaultScanInfoBubble.classList.add("is-visible");
+    };
+
+    const scheduleHideVaultScanInfoBubble = () => {
+      if (vaultScanInfoHideTimer !== null) {
+        window.clearTimeout(vaultScanInfoHideTimer);
+      }
+      vaultScanInfoHideTimer = window.setTimeout(() => {
+        vaultScanInfoBubble.classList.remove("is-visible");
+        vaultScanInfoHideTimer = null;
+      }, 150);
+    };
+
+    vaultScanInfo.addEventListener("mouseenter", showVaultScanInfoBubble);
+    vaultScanInfo.addEventListener("mouseleave", scheduleHideVaultScanInfoBubble);
+    vaultScanInfoBubble.addEventListener("mouseenter", showVaultScanInfoBubble);
+    vaultScanInfoBubble.addEventListener("mouseleave", scheduleHideVaultScanInfoBubble);
+
+    if (this.plugin.settings.conflictScanScope === "folder") {
+      new Setting(containerEl)
+        .setName("Conflict scan folder")
+        .setDesc("Folder path relative to vault root used for conflict scan/migration.")
+        .addText((text) => {
+          text
+            .setPlaceholder("e.g. Projects/Research")
+            .setValue(this.plugin.settings.conflictScanFolder)
+            .onChange(async (value) => {
+              this.plugin.settings.conflictScanFolder = value;
+              await this.plugin.saveSettings();
+            });
+        });
+    }
+
+    new Setting(containerEl)
+      .setName("Privacy note")
+      .setDesc("Conflict checks can scan note paths in the selected scope. Highlightr+ performs scans only on explicit save/migrate action and does not persist or transmit scanned file path lists.");
+
     const highlighterSetting = new Setting(containerEl);
 
     highlighterSetting
@@ -677,8 +834,10 @@ export class HighlightrSettingTab extends PluginSettingTab {
                 const className = customClass || createDefaultHighlighterClass(color);
                 const classToken = `hltr-${className.toLowerCase()}`;
                 if (this.plugin.settings.highlighterMethods === "css-classes") {
-                  const summary = await this.scanClassConflictSummary(classToken);
-                  if (summary.totalMarks > 0) {
+                   const summary = await this.scanClassConflictSummary(classToken);
+                   new Notice(`Conflict scan scope: ${this.getConflictScanScopeLabel()}`);
+                   if (summary.totalMarks > 0) {
+
                     const action = await this.confirmClassConflict(summary, color, value);
                     if (action === "rename") {
                       new Notice("Choose a different highlight name or class to keep both colors.");

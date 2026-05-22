@@ -35,6 +35,8 @@ export interface HighlightrSettings {
   highlighterClasses: HighlighterClasses;
   highlighterActivity: HighlighterActivity;
   highlighterOrder: string[];
+  conflictScanScope: "active-file" | "folder" | "vault";
+  conflictScanFolder: string;
 }
 
 const DEFAULT_SETTINGS: HighlightrSettings = {
@@ -54,6 +56,8 @@ const DEFAULT_SETTINGS: HighlightrSettings = {
   highlighterClasses: {},
   highlighterActivity: {},
   highlighterOrder: [],
+  conflictScanScope: "active-file",
+  conflictScanFolder: "",
 };
 
 DEFAULT_SETTINGS.highlighterOrder = Object.keys(DEFAULT_SETTINGS.highlighters);
