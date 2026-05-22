@@ -879,7 +879,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
                         .split(',')
                         .map((tag: string) => tag.trim())
                         .filter((tag: string) => tag.length > 0)
-                        .map((tag: string) => '#' + tag.replace(/\s+/g, '-'));
+                        .map((tag: string) => tag.replace(/\s+/g, '-'));
                     if (tagArray.length > 0) {
                         let tagsMarkup = '<span class="highlight-tags">';
                         tagArray.forEach((tag: string) => {
@@ -945,7 +945,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
                         .split(',')
                         .map((tag: string) => tag.trim())
                         .filter((tag: string) => tag.length > 0)
-                        .map((tag: string) => '#' + tag.replace(/\s+/g, '-'));
+                        .map((tag: string) => tag.replace(/\s+/g, '-'));
                     if (tagArray.length > 0) {
                         let tagsMarkup = '<span class="highlight-tags">';
                         tagArray.forEach((tag: string) => {
