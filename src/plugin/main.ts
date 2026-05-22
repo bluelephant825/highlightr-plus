@@ -406,6 +406,11 @@ export default class HighlightrPlugin extends Plugin {
 
             this.registerEvent(
                 this.app.workspace.on("file-open", () => {
+                    this.removeExistingBubbles();
+                    window.setTimeout(() => {
+                        this.processMarkTags();
+                        this.attachEventListeners();
+                    }, 0);
                     if (this.fileHasHighlights()) {
                         void this.openNotesTab();
                     }
