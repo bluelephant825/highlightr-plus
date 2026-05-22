@@ -510,7 +510,7 @@ export class HighlightrSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    new Setting(containerEl).setName("Highlightr+ Settings").setHeading();
+    new Setting(containerEl).setName("Highlightr+ Plugin").setHeading();
     const createdBy = containerEl.createEl("p", { text: "Created by " });
     createdBy.createEl("a", {
       text: "Chetachi 👩🏽‍💻",
@@ -880,7 +880,7 @@ If you give a plugin a wide scope (letting it scan everything), it has to read t
     setIcon(activeInfoIcon, "info");
     const activeInfoBubble = activeInfo.createEl("div", {
       cls: "hltr-active-colors-info-bubble",
-      text: "Appears in the context menu and the command palette.",
+      text: "Appear in the context menu and the command palette.",
     });
 
     let activeInfoHideTimer: number | null = null;

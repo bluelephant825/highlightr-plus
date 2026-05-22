@@ -551,6 +551,7 @@ button:not(.mod-cta):not(
 
 .hltr-vault-scan-info-bubble.is-visible {
   display: block;
+  font-weight: normal;
 }
 
 .hltr-active-colors-info {
@@ -580,7 +581,6 @@ button:not(.mod-cta):not(
   padding: 8px 10px;
   color: var(--text-normal);
   font-size: var(--font-ui-medium);
-  font-weight: normal;
   line-height: 1.3;
   z-index: 9999;
   display: none;
@@ -588,6 +588,14 @@ button:not(.mod-cta):not(
 
 .hltr-active-colors-info-bubble.is-visible {
   display: block;
+}
+
+.setting-item-name span.hltr-active-colors-info .hltr-active-colors-info-bubble.is-visible {
+  font-weight: normal;
+}
+
+.setting-item-name {
+  font-weight: var(--setting-group-heading-weight);
 }
 
 /*----------------------------------------------------------------
@@ -602,7 +610,7 @@ HIGHLIGHTR SUPPORT
   color: var(--text-normal);
 }
 
-.hltrDonationSection h3.hltrDonationHeadingSpacing {
+.hltrDonationSection .hltrDonationHeadingSpacing {
   display: block;
   margin-top: 24px;
 }
@@ -623,6 +631,10 @@ HIGHLIGHTR SUPPORT
 
 .themed-color-wrapper .pickr-reset > button > svg {
   display: block;
+}
+
+.buymeacoffee-chetachi-img img {
+  margin-left: 15px;
 }
 
 /*----------------------------------------------------------------
