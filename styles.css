@@ -1120,3 +1120,27 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   display: inline-flex;
   padding: var(--tag-padding-y, 0.15em) var(--tag-padding-x, 0.6em);
 }
+
+.hltr-highlight-tags {
+  margin-top: 4px;
+  padding-left: 0.5em;
+  align-items: baseline;
+}
+
+.hltr-inline-label {
+  font-family: "nohash", var(--font-text);
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: var(--tag-padding-y, 0.15em) var(--tag-padding-x, 0.6em);
+  margin-right: 4px;
+  background-color: var(--tag-background, rgba(255, 255, 255, 0.15));
+  border: var(--tag-border-width, 1px) solid var(--tag-border-color, rgba(0, 0, 0, 0.1));
+  border-radius: var(--tag-radius, 999px);
+  color: var(--tag-color, var(--text-normal, #333333));
+  font-size: 0.875em;
+  font-weight: var(--tag-weight, 500);
+  text-decoration: var(--tag-decoration, none);
+  line-height: 1;
+}

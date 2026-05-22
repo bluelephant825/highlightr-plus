@@ -712,7 +712,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
         // Create new bound handler
         this.clickHandlerBound = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
-            if (target.closest('.highlight-tag')) {
+            if (target.closest('.highlight-tag, .hltr-inline-label')) {
                 e.stopPropagation();
                 e.preventDefault();
                 // Handle tag click logic here
@@ -777,11 +777,12 @@ const colorValue = this.settings.highlighters[highlighterKey];
             cleaned = cleaned
                 .replace(/<span\s+class="note-icon"[^>]*>[\s\S]*?<\/span>/g, "")
                 .replace(/<span\s+class="highlight-tag"[^>]*>[\s\S]*?<\/span>/g, "")
-                .replace(/<span\s+class="highlight-tags"[^>]*>[\s\S]*?<\/span>/g, "");
+                .replace(/<span\s+class="hltr-inline-label"[^>]*>[\s\S]*?<\/span>/g, "")
+                .replace(/<span\s+class="hltr-highlight-tags"[^>]*>[\s\S]*?<\/span>/g, "");
         }
 
         return cleaned
-            .replace(/<span\s+class="(?:note-icon|highlight-tag|highlight-tags)"[^>]*>/g, "")
+            .replace(/<span\s+class="(?:note-icon|highlight-tag|hltr-inline-label|hltr-highlight-tags)"[^>]*>/g, "")
             .replace(/(<span class="note-icon">[\s\S]*?<\/span>)(?:\s*<\/span>)+/g, "$1")
             .replace(/<\/mark>(?:\s*<\/span>)+/g, "</mark>")
             .replace(/(?:\s*<\/span>\s*)+(?=<mark\b)/g, "")
@@ -856,8 +857,9 @@ const colorValue = this.settings.highlighters[highlighterKey];
         const cleaned = this.stripInjectedDecorationSpans(segment)
             .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
             .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="highlight-tags">\s*<\/span>/g, '')
-            .replace(/<span class="highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
+            .replace(/<span class="hltr-inline-label">[\s\S]*?<\/span>/g, '')
+            .replace(/<span class="hltr-highlight-tags">\s*<\/span>/g, '')
+            .replace(/<span class="hltr-highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
 
         const rebuilt = cleaned.replace(
             /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
@@ -881,9 +883,9 @@ const colorValue = this.settings.highlighters[highlighterKey];
                         .filter((tag: string) => tag.length > 0)
                         .map((tag: string) => tag.replace(/\s+/g, '-'));
                     if (tagArray.length > 0) {
-                        let tagsMarkup = '<span class="highlight-tags">';
+                        let tagsMarkup = '<span class="hltr-highlight-tags">';
                         tagArray.forEach((tag: string) => {
-                            tagsMarkup += `<span class="highlight-tag">${tag}</span>`;
+                            tagsMarkup += `<span class="hltr-inline-label">${tag}</span>`;
                         });
                         tagsMarkup += '</span>';
                         additionalContent += tagsMarkup;
@@ -918,8 +920,9 @@ const colorValue = this.settings.highlighters[highlighterKey];
         const cleanContent = this.stripInjectedDecorationSpans(content)
             .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
             .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="highlight-tags">\s*<\/span>/g, '')
-            .replace(/<span class="highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
+            .replace(/<span class="hltr-inline-label">[\s\S]*?<\/span>/g, '')
+            .replace(/<span class="hltr-highlight-tags">\s*<\/span>/g, '')
+            .replace(/<span class="hltr-highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
 
         const updatedContent = cleanContent.replace(
             /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
@@ -947,9 +950,9 @@ const colorValue = this.settings.highlighters[highlighterKey];
                         .filter((tag: string) => tag.length > 0)
                         .map((tag: string) => tag.replace(/\s+/g, '-'));
                     if (tagArray.length > 0) {
-                        let tagsMarkup = '<span class="highlight-tags">';
+                        let tagsMarkup = '<span class="hltr-highlight-tags">';
                         tagArray.forEach((tag: string) => {
-                            tagsMarkup += `<span class="highlight-tag">${tag}</span>`;
+                            tagsMarkup += `<span class="hltr-inline-label">${tag}</span>`;
                         });
                         tagsMarkup += '</span>';
                         additionalContent += tagsMarkup;
