@@ -46,9 +46,11 @@ export default class HighlightrPlugin extends Plugin {
     manifest!: PluginManifest;
     settings!: HighlightrSettings;
     private clickHandlerBound!: (e: MouseEvent) => void;
+    private readingContextMenuHandlerBound!: (e: MouseEvent) => void;
     private editorMenuEventRef: EventRef | null = null;
     private isUpdatingEditorContent: boolean = false;
     private suppressFullProcessingUntil: number = 0;
+    private readonly markRegex = /<mark\b[^>]*>[\s\S]*?<\/mark>/g;
 
     private getActiveDocument(): Document {
         return this.app.workspace.activeDocument ?? activeDocument;
@@ -59,6 +61,86 @@ export default class HighlightrPlugin extends Plugin {
         return activeDoc.querySelector('.workspace-leaf.mod-active .cm-scroller');
     }
 
+    private findMarkRangeAt(line: string, offset: number): { start: number; end: number } | null {
+        this.markRegex.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        while ((match = this.markRegex.exec(line)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+            if (offset >= start && offset <= end) {
+                return { start, end };
+            }
+        }
+        return null;
+    }
+
+    private findNearestRangeByText(
+        editor: EnhancedEditor,
+        text: string,
+        preferredOffset?: number,
+    ): { from: { line: number; ch: number }; to: { line: number; ch: number } } | null {
+        if (!text.length || !editor.posToOffset || !editor.offsetToPos) {
+            return null;
+        }
+
+        const content = editor.getValue();
+        const fallbackOffset = editor.posToOffset(editor.getCursor("from"));
+        const targetOffset = preferredOffset ?? fallbackOffset;
+        let matchIndex = content.indexOf(text);
+        if (matchIndex === -1) {
+            return null;
+        }
+
+        let closestIndex = matchIndex;
+        let closestDistance = Math.abs(matchIndex - targetOffset);
+        while (matchIndex !== -1) {
+            const distance = Math.abs(matchIndex - targetOffset);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = matchIndex;
+            }
+            matchIndex = content.indexOf(text, matchIndex + 1);
+        }
+
+        return {
+            from: editor.offsetToPos(closestIndex),
+            to: editor.offsetToPos(closestIndex + text.length),
+        };
+    }
+
+    private findRangeByTextOccurrence(
+        editor: EnhancedEditor,
+        text: string,
+        occurrence: number,
+    ): { from: { line: number; ch: number }; to: { line: number; ch: number } } | null {
+        if (!text.length || occurrence < 0 || !editor.offsetToPos) {
+            return null;
+        }
+
+        const content = editor.getValue();
+        let fromIndex = -1;
+        let searchStart = 0;
+        let current = 0;
+        while (current <= occurrence) {
+            fromIndex = content.indexOf(text, searchStart);
+            if (fromIndex === -1) {
+                return null;
+            }
+            searchStart = fromIndex + 1;
+            current += 1;
+        }
+
+        return {
+            from: editor.offsetToPos(fromIndex),
+            to: editor.offsetToPos(fromIndex + text.length),
+        };
+    }
+
+    private getPreviewMarkOccurrence(previewRoot: Element, markEl: HTMLElement): number {
+        const marks = Array.from(previewRoot.querySelectorAll('mark'));
+        return marks.indexOf(markEl);
+    }
+
     private withPreservedEditorScroll(applyUpdate: () => void): void {
         const scroller = this.getActiveEditorScroller();
         const previousTop = scroller?.scrollTop ?? null;
@@ -66,6 +148,134 @@ export default class HighlightrPlugin extends Plugin {
         if (scroller && previousTop !== null) {
             scroller.scrollTop = previousTop;
         }
+    }
+
+    private async setMarkdownViewMode(view: MarkdownView, mode: "source" | "preview"): Promise<void> {
+        const leaf = view.leaf;
+        const viewState = leaf.getViewState();
+        await leaf.setViewState({
+            ...viewState,
+            state: {
+                ...(viewState.state ?? {}),
+                mode,
+            },
+        });
+    }
+
+    private restorePreviewWhenAnnotationModalCloses(view: MarkdownView): void {
+        const activeDoc = this.getActiveDocument();
+        const restoreIfReady = () => {
+            const hasOpenAnnotationModal = !!activeDoc.querySelector('.highlightr-annotation-modal');
+            if (hasOpenAnnotationModal) {
+                window.setTimeout(restoreIfReady, 100);
+                return;
+            }
+            void this.setMarkdownViewMode(view, "preview");
+        };
+        window.setTimeout(restoreIfReady, 0);
+    }
+
+    private async showReadingModeContextMenu(event: MouseEvent): Promise<void> {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view?.editor) {
+            return;
+        }
+
+        const target = event.target as HTMLElement | null;
+        if (!target) {
+            return;
+        }
+
+        const previewRoot = target.closest('.markdown-preview-view');
+        if (!previewRoot) {
+            return;
+        }
+
+        const markEl = target.closest('mark') as HTMLElement | null;
+        const noteIconEl = target.closest('.note-icon') as HTMLElement | null;
+        const noteIconMark = noteIconEl?.previousElementSibling?.tagName.toLowerCase() === 'mark'
+            ? noteIconEl.previousElementSibling as HTMLElement
+            : null;
+        const activeMarkEl = markEl ?? noteIconMark;
+
+        const editor = view.editor as EnhancedEditor;
+        const activeDoc = this.getActiveDocument();
+        const selection = activeDoc.defaultView?.getSelection();
+        const selectedText = selection?.toString() ?? "";
+
+        if (!activeMarkEl && !selectedText.trim().length) {
+            return;
+        }
+
+        const shouldRestorePreview = view.getMode() === "preview";
+        if (shouldRestorePreview) {
+            await this.setMarkdownViewMode(view, "source");
+        }
+
+        const clickOffset = editor.posToOffset?.(editor.getCursor("from"));
+        const restorePreview = async () => {
+            if (shouldRestorePreview) {
+                await this.setMarkdownViewMode(view, "preview");
+            }
+        };
+
+        const menu = new Menu();
+        const menuWithNativeToggle = menu as Menu & {
+            setUseNativeMenu?: (useNativeMenu: boolean) => Menu;
+        };
+        menuWithNativeToggle.setUseNativeMenu?.(false);
+
+        if (activeMarkEl) {
+            const markHtml = activeMarkEl.outerHTML;
+            const previewOccurrence = this.getPreviewMarkOccurrence(previewRoot, activeMarkEl);
+            if (previewOccurrence >= 0) {
+                const occurrenceRange = this.findRangeByTextOccurrence(editor, markHtml, previewOccurrence);
+                if (occurrenceRange) {
+                    editor.setSelection(occurrenceRange.from, occurrenceRange.to);
+                } else {
+                    const nearestRange = this.findNearestRangeByText(editor, markHtml, clickOffset);
+                    if (!nearestRange) {
+                        await restorePreview();
+                        return;
+                    }
+                    editor.setSelection(nearestRange.from, nearestRange.to);
+                }
+            } else {
+                const nearestRange = this.findNearestRangeByText(editor, markHtml, clickOffset);
+                if (!nearestRange) {
+                    await restorePreview();
+                    return;
+                }
+                editor.setSelection(nearestRange.from, nearestRange.to);
+            }
+        } else if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const startNode = range.startContainer;
+            const endNode = range.endContainer;
+            const markdownSourceRoot = previewRoot.querySelector('.markdown-preview-sizer') ?? previewRoot;
+            if (!markdownSourceRoot.contains(startNode) || !markdownSourceRoot.contains(endNode)) {
+                await restorePreview();
+                return;
+            }
+
+            const nearestRange = this.findNearestRangeByText(editor, selectedText, clickOffset);
+            if (!nearestRange) {
+                await restorePreview();
+                return;
+            }
+
+            editor.setSelection(nearestRange.from, nearestRange.to);
+        }
+
+        if (shouldRestorePreview) {
+            menu.onHide(() => {
+                this.restorePreviewWhenAnnotationModalCloses(view);
+            });
+        }
+
+        contextMenu(this.app, menu, editor, this, this.settings);
+        menu.showAtPosition({ x: event.clientX, y: event.clientY });
+        event.preventDefault();
     }
 
     onload(): void {
@@ -331,6 +541,9 @@ const colorValue = this.settings.highlighters[highlighterKey];
         if (this.clickHandlerBound) {
             this.app.workspace.containerEl.removeEventListener('click', this.clickHandlerBound);
         }
+        if (this.readingContextMenuHandlerBound) {
+            this.app.workspace.containerEl.removeEventListener('contextmenu', this.readingContextMenuHandlerBound, true);
+        }
     }
 
     handleHighlighterInContextMenu = (
@@ -430,6 +643,9 @@ const colorValue = this.settings.highlighters[highlighterKey];
         if (this.clickHandlerBound) {
             workspaceEl.removeEventListener('click', this.clickHandlerBound);
         }
+        if (this.readingContextMenuHandlerBound) {
+            workspaceEl.removeEventListener('contextmenu', this.readingContextMenuHandlerBound, true);
+        }
 
         // Create new bound handler
         this.clickHandlerBound = (e: MouseEvent) => {
@@ -441,7 +657,12 @@ const colorValue = this.settings.highlighters[highlighterKey];
             }
         };
 
+        this.readingContextMenuHandlerBound = (e: MouseEvent) => {
+            this.showReadingModeContextMenu(e);
+        };
+
         workspaceEl.addEventListener('click', this.clickHandlerBound);
+        workspaceEl.addEventListener('contextmenu', this.readingContextMenuHandlerBound, true);
 
         // Handle editing mode
         const activeDoc = this.getActiveDocument();

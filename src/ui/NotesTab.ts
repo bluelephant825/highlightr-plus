@@ -155,9 +155,28 @@ export class NotesTab extends ItemView {
     }
 
     private decodeHtmlEntities(text: string): string {
-        const parser = new DOMParser();
-        const parsed = parser.parseFromString(text, 'text/html');
-        return parsed.documentElement.textContent ?? '';
+        const namedEntities: Record<string, string> = {
+            amp: '&',
+            lt: '<',
+            gt: '>',
+            quot: '"',
+            apos: "'",
+            nbsp: '\u00A0'
+        };
+
+        return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+            if (entity.startsWith('#x') || entity.startsWith('#X')) {
+                const codePoint = Number.parseInt(entity.slice(2), 16);
+                return Number.isNaN(codePoint) ? match : String.fromCodePoint(codePoint);
+            }
+
+            if (entity.startsWith('#')) {
+                const codePoint = Number.parseInt(entity.slice(1), 10);
+                return Number.isNaN(codePoint) ? match : String.fromCodePoint(codePoint);
+            }
+
+            return namedEntities[entity] ?? match;
+        });
     }
 
     private appendSanitized(node: Node, target: HTMLElement): void {
@@ -189,19 +208,28 @@ export class NotesTab extends ItemView {
         if (!text) {
             return;
         }
+
+        const doc = this.getActiveDocument();
+
+        if (!text.includes('<')) {
+            container.appendChild(doc.createTextNode(this.decodeHtmlEntities(text)));
+            return;
+        }
+
         const parser = new DOMParser();
         const parsed = parser.parseFromString(text, 'text/html');
         Array.from(parsed.body.childNodes).forEach((node) => this.appendSanitized(node, container));
     }
 
     private renderHighlightText(container: HTMLElement, text: string): void {
-        const inlineCodeRegex = /`([^`]+)`/g;
+        const inlineCodeRegex = /`([^`]+)`|<code\b[^>]*>([\s\S]*?)<\/code>/gi;
         let cursor = 0;
         let match: RegExpExecArray | null;
         const doc = this.getActiveDocument();
 
         while ((match = inlineCodeRegex.exec(text)) !== null) {
-            const [fullMatch, inlineCode] = match;
+            const fullMatch = match[0];
+            const inlineCode = match[1] ?? match[2] ?? '';
             const beforeText = text.slice(cursor, match.index);
             this.renderHtmlFragment(container, beforeText);
 

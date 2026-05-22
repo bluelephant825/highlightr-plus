@@ -430,6 +430,9 @@ export default function contextMenu(
 
   const selection = editor.getSelection();
   const hasSelection = selection.length > 0;
+  const initialSelectionRange = hasSelection
+    ? { from: editor.getCursor("from"), to: editor.getCursor("to") }
+    : null;
 
   const menuWithNativeToggle = menu as Menu & {
     setUseNativeMenu?: (useNativeMenu: boolean) => Menu;
@@ -472,13 +475,14 @@ export default function contextMenu(
   };
 
   const annotateSelection = async () => {
-    if (!hasSelection) return;
+    if (!initialSelectionRange) return;
+    const selectionText = editor.getRange(initialSelectionRange.from, initialSelectionRange.to);
+    if (!selectionText.length) return;
     const result = await annotateWithModal(app, "", "");
     if (!result) return;
     if (!result.note.trim() && !result.tags.trim()) return;
-    const wrapped = `<mark data-note="${escapeAttributeValue(result.note)}" data-tags="${escapeAttributeValue(result.tags)}">${selection}</mark>`;
-    editor.replaceSelection(wrapped);
-    editor.focus();
+    const wrapped = `<mark data-note="${escapeAttributeValue(result.note)}" data-tags="${escapeAttributeValue(result.tags)}">${selectionText}</mark>`;
+    replaceRange(editor, initialSelectionRange, wrapped);
     finalizeAfterEdit();
   };
 
@@ -495,14 +499,15 @@ export default function contextMenu(
   };
 
   const applyHighlightToSelection = (highlighter: string, color: string) => {
-    if (!hasSelection) return;
+    if (!initialSelectionRange) return;
+    const selectionText = editor.getRange(initialSelectionRange.from, initialSelectionRange.to);
+    if (!selectionText.length) return;
     const isCssClassesMode = settings.highlighterMethods === "css-classes";
     const className = (settings.highlighterClasses?.[highlighter] ?? createDefaultHighlighterClass(highlighter)).toLowerCase();
     const wrapped = isCssClassesMode
-      ? `<mark class="hltr-${className}" style="--hltr-color: ${color};">${selection}</mark>`
-      : `<mark style="background-color: ${color};">${selection}</mark>`;
-    editor.replaceSelection(wrapped);
-    editor.focus();
+      ? `<mark class="hltr-${className}" style="--hltr-color: ${color};">${selectionText}</mark>`
+      : `<mark style="background-color: ${color};">${selectionText}</mark>`;
+    replaceRange(editor, initialSelectionRange, wrapped);
     finalizeAfterEdit();
   };
 

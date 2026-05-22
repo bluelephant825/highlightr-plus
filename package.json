@@ -1,6 +1,6 @@
 {
   "name": "highlightr-plus",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "homepage": "https://github.com/bluelephant825/highlightr-plus",
   "description": "Highlightr+ is a plugin that adds a simple highlighting modal for better multi-colored highlighting support 🎨.",
   "type": "module",
@@ -18,6 +18,9 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^14.14.37",
     "@types/sortablejs": "^1.13.0",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^10.4.0",
+    "eslint-plugin-obsidianmd": "^0.3.0",
     "obsidian": "^0.16.0",
     "rollup": "^4.60.3",
     "tslib": "^2.2.0",
