@@ -50,6 +50,7 @@ export default class HighlightrPlugin extends Plugin {
     private editorMenuEventRef: EventRef | null = null;
     private isUpdatingEditorContent: boolean = false;
     private suppressFullProcessingUntil: number = 0;
+    private isRefreshingPreviewAfterOpen: boolean = false;
     private readonly markRegex = /<mark\b[^>]*>[\s\S]*?<\/mark>/g;
 
     private getActiveDocument(): Document {
@@ -406,11 +407,15 @@ export default class HighlightrPlugin extends Plugin {
 
             this.registerEvent(
                 this.app.workspace.on("file-open", () => {
-                    this.removeExistingBubbles();
-                    window.setTimeout(() => {
+                    const runPostOpenPass = () => {
                         this.processMarkTags();
                         this.attachEventListeners();
-                    }, 0);
+                    };
+                    this.removeExistingBubbles();
+                    runPostOpenPass();
+                    window.setTimeout(runPostOpenPass, 80);
+                    window.setTimeout(runPostOpenPass, 240);
+                    void this.refreshPreviewAfterFileOpen();
                     if (this.fileHasHighlights()) {
                         void this.openNotesTab();
                     }
@@ -780,14 +785,11 @@ const colorValue = this.settings.highlighters[highlighterKey];
         while (cleaned !== previous) {
             previous = cleaned;
             cleaned = cleaned
-                .replace(/<span\s+class="note-icon"[^>]*>[\s\S]*?<\/span>/g, "")
-                .replace(/<span\s+class="highlight-tag"[^>]*>[\s\S]*?<\/span>/g, "")
-                .replace(/<span\s+class="hltr-inline-label"[^>]*>[\s\S]*?<\/span>/g, "")
-                .replace(/<span\s+class="hltr-highlight-tags"[^>]*>[\s\S]*?<\/span>/g, "");
+                .replace(/<span\b[^>]*\bclass="[^"]*\b(?:note-icon|highlight-tag|highlight-tags|hltr-inline-label|hltr-highlight-tags)\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, "");
         }
 
         return cleaned
-            .replace(/<span\s+class="(?:note-icon|highlight-tag|hltr-inline-label|hltr-highlight-tags)"[^>]*>/g, "")
+            .replace(/<span\b[^>]*\bclass="[^"]*\b(?:note-icon|highlight-tag|highlight-tags|hltr-inline-label|hltr-highlight-tags)\b[^"]*"[^>]*>/g, "")
             .replace(/(<span class="note-icon">[\s\S]*?<\/span>)(?:\s*<\/span>)+/g, "$1")
             .replace(/<\/mark>(?:\s*<\/span>)+/g, "</mark>")
             .replace(/(?:\s*<\/span>\s*)+(?=<mark\b)/g, "")
@@ -860,11 +862,12 @@ const colorValue = this.settings.highlighters[highlighterKey];
         const noteIconHtml = noteIconWrapper.outerHTML;
 
         const cleaned = this.stripInjectedDecorationSpans(segment)
-            .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="hltr-inline-label">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="hltr-highlight-tags">\s*<\/span>/g, '')
-            .replace(/<span class="hltr-highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
+            .replace(/<span\b[^>]*\bclass="[^"]*\bnote-icon\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhighlight-tag\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhighlight-tags\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhltr-inline-label\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhltr-highlight-tags\b[^"]*"[^>]*>\s*<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhltr-highlight-tags\b[^"]*"[^>]*>(?:\s*<span class="hltr-inline-label">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
 
         const rebuilt = cleaned.replace(
             /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
@@ -913,6 +916,26 @@ const colorValue = this.settings.highlighters[highlighterKey];
         this.triggerNotesTabUpdate();
     }
 
+    private async refreshPreviewAfterFileOpen(): Promise<void> {
+        if (this.isRefreshingPreviewAfterOpen) {
+            return;
+        }
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view || view.getMode() !== "preview") {
+            return;
+        }
+
+        this.isRefreshingPreviewAfterOpen = true;
+        try {
+            await this.setMarkdownViewMode(view, "source");
+            this.processMarkTags();
+            await this.setMarkdownViewMode(view, "preview");
+            this.attachEventListeners();
+        } finally {
+            this.isRefreshingPreviewAfterOpen = false;
+        }
+    }
+
     private processMarkTags(): void {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!view?.editor) return;
@@ -923,11 +946,12 @@ const colorValue = this.settings.highlighters[highlighterKey];
         const cursorPos = view.editor.getCursor();
 
         const cleanContent = this.stripInjectedDecorationSpans(content)
-            .replace(/<span class="note-icon">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="highlight-tag">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="hltr-inline-label">[\s\S]*?<\/span>/g, '')
-            .replace(/<span class="hltr-highlight-tags">\s*<\/span>/g, '')
-            .replace(/<span class="hltr-highlight-tags">(?:\s*<span class="highlight-tag">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
+            .replace(/<span\b[^>]*\bclass="[^"]*\bnote-icon\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhighlight-tag\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhighlight-tags\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhltr-inline-label\b[^"]*"[^>]*>[\s\S]*?<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhltr-highlight-tags\b[^"]*"[^>]*>\s*<\/span>/g, '')
+            .replace(/<span\b[^>]*\bclass="[^"]*\bhltr-highlight-tags\b[^"]*"[^>]*>(?:\s*<span class="hltr-inline-label">[\s\S]*?<\/span>\s*)*<\/span>/g, '');
 
         const updatedContent = cleanContent.replace(
             /<mark\b([^>]*)>([\s\S]*?)<\/mark>/g,
