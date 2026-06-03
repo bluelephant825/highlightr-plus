@@ -1,12 +1,12 @@
-# Highlightr+ Plugin
+# Highlightr Plus Plugin
 
 <img src="assets/Highlightr Demo Header.png" style=" box-shadow: 0 2px 8px 0 var(--background-modifier-border); border-radius: 8px; ">
 
 ### Status: This plugin is currently available in the Obsidian plugin store
 
-Highlightr+ is a simple plugin that brings a minimal and aesthetically pleasing highlighting and annotating menu into the Obsidian note-taking app. This plugin makes color-coded highlighting much easier with a user-friendly assortment of highlight colors.
+Highlightr Plus is a simple plugin that brings a minimal and aesthetically pleasing highlighting and annotating menu into the Obsidian note-taking app. This plugin makes color-coded highlighting much easier with a user-friendly assortment of highlight colors.
 
-This plugin is based on Chetachi's original Highlightr plugin. The screenshots below are from the Highlightr plugin and the UI may be slightly different in Highlightr+, but the functionality is the same.
+This plugin is based on Chetachi's original Highlightr plugin. The screenshots below are from the Highlightr plugin and the UI may be slightly different in Highlightr Plus, but the functionality is the same.
 
 ## Demo
 
