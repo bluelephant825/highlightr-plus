@@ -1153,6 +1153,7 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   display: inline;
   padding: 2px 4px;
   border-radius: 3px;
+  background-color: var(--hltr-color, transparent);
 }
 
 .highlight-text code {
@@ -1249,4 +1250,17 @@ PICKR 1.8.2 MIT | https://github.com/Simonwep/pickr
   font-weight: var(--tag-weight, 500);
   text-decoration: var(--tag-decoration, none);
   line-height: 1;
+}
+
+.markdown-preview-view .hltr-inline-label {
+  font-family: "nohash", var(--font-text);
+  display: inline;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 }

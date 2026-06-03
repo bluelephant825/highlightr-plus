@@ -74,6 +74,7 @@ export class NotesTab extends ItemView {
             }
 
             const allHighlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string; cssClass: string | null }> = [];
+            const processedFilePaths = new Set<string>();
 
             // Process each markdown leaf
             for (const leaf of markdownLeaves) {
@@ -81,7 +82,8 @@ export class NotesTab extends ItemView {
                     return;
                 }
                 const view = leaf.view;
-                if (view instanceof MarkdownView && view.file) {
+                if (view instanceof MarkdownView && view.file && !processedFilePaths.has(view.file.path)) {
+                    processedFilePaths.add(view.file.path);
                     console.log("Processing file:", view.file.path);
                     const content = view.editor?.getValue() ?? await this.app.vault.read(view.file);
                     console.log("File content loaded:", content.length);
@@ -89,7 +91,7 @@ export class NotesTab extends ItemView {
                     // Updated regex patterns
                     const noteRegex = /data-note="([^"]*)"/;
                     const tagsRegex = /data-tags="([^"]*)"/;
-                    const colorRegex = /background(?:-color)?:\s*((?:rgb\([^)]+\)|#[A-Fa-f0-9]+))/;
+                    const colorRegex = /(?:background(?:-color)?|--hltr-color):\s*((?:rgba?\([^)]+\)|#[A-Fa-f0-9]+))/i;
                     const classRegex = /\bclass="([^"]*)"/i;
                     const highlightRegex = /<mark[^>]*>(.*?)<\/mark>/g;
 
@@ -342,10 +344,12 @@ export class NotesTab extends ItemView {
             const highlightEl = fileSection.createDiv({ cls: "highlight-item" });
 
             const textEl = highlightEl.createDiv({ cls: "highlight-text" });
+            if (cssClass) {
+                textEl.addClass(cssClass);
+            }
             if (color) {
                 textEl.style.setProperty('--hltr-color', color);
             } else if (cssClass) {
-                textEl.addClass(cssClass);
                 const resolvedClassColor = this.resolveColorFromClass(cssClass);
                 if (resolvedClassColor) {
                     textEl.style.setProperty('--hltr-color', resolvedClassColor);
