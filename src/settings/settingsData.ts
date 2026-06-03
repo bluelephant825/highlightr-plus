@@ -30,6 +30,7 @@ export function createDefaultHighlighterClass(colorName: string): string {
 
 export interface HighlightrSettings {
   highlighterStyle: string;
+  focusHighlightsAndNotes: boolean;
   highlighterMethods: string;
   highlighters: Highlighters;
   highlighterClasses: HighlighterClasses;
@@ -41,6 +42,7 @@ export interface HighlightrSettings {
 
 const DEFAULT_SETTINGS: HighlightrSettings = {
   highlighterStyle: "none",
+  focusHighlightsAndNotes: false,
   highlighterMethods: "inline-styles",
   highlighters: {
     Pink: "#FFB8EBA6",

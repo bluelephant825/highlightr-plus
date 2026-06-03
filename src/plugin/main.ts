@@ -1,4 +1,4 @@
-import { Editor, EventRef, Menu, Notice, Plugin, PluginManifest, MarkdownView, setIcon, WorkspaceLeaf } from "obsidian";
+import { Editor, EventRef, Menu, Notice, Plugin, PluginManifest, MarkdownView, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import { wait } from "../utils/util";
 import { debounce } from "../utils/debounce";
 import addIcons from "../icons/customIcons";
@@ -51,6 +51,7 @@ export default class HighlightrPlugin extends Plugin {
     private isUpdatingEditorContent: boolean = false;
     private suppressFullProcessingUntil: number = 0;
     private isRefreshingPreviewAfterOpen: boolean = false;
+    private activeMarkdownFilePath: string | null = null;
     private readonly markRegex = /<mark\b[^>]*>[\s\S]*?<\/mark>/g;
 
     private getActiveDocument(): Document {
@@ -60,6 +61,15 @@ export default class HighlightrPlugin extends Plugin {
     private getActiveEditorScroller(): HTMLElement | null {
         const activeDoc = this.getActiveDocument();
         return activeDoc.querySelector('.workspace-leaf.mod-active .cm-scroller');
+    }
+
+    public getFocusedMarkdownFilePath(): string | null {
+        const activeLeafView = this.app.workspace.activeLeaf?.view;
+        if (activeLeafView instanceof MarkdownView) {
+            return activeLeafView.file?.path ?? null;
+        }
+
+        return this.activeMarkdownFilePath;
     }
 
     private findMarkRangeAt(line: string, offset: number): { start: number; end: number } | null {
@@ -364,7 +374,7 @@ export default class HighlightrPlugin extends Plugin {
                 this.attachEventListeners();
 
                 // Open and initialize the notes tab
-                await this.openNotesTab();
+                await this.openNotesTab(false);
 
                 // Force update the NotesTab after a short delay to ensure content is loaded
                 window.setTimeout(() => {
@@ -388,11 +398,20 @@ export default class HighlightrPlugin extends Plugin {
 
             // Register for view changes
             this.registerEvent(
-                this.app.workspace.on("active-leaf-change", () => {
+                this.app.workspace.on("active-leaf-change", (leaf) => {
+                    const activeMarkdownFilePath = leaf?.view instanceof MarkdownView
+                        ? leaf.view.file?.path ?? null
+                        : null;
+                    const markdownFileChanged = !!activeMarkdownFilePath && activeMarkdownFilePath !== this.activeMarkdownFilePath;
+                    if (activeMarkdownFilePath) {
+                        this.activeMarkdownFilePath = activeMarkdownFilePath;
+                    }
                     this.removeExistingBubbles();
                     this.processMarkTags();
                     this.attachEventListeners();
-                    this.triggerNotesTabUpdate();
+                    if (markdownFileChanged) {
+                        this.triggerNotesTabUpdate(activeMarkdownFilePath);
+                    }
                 })
             );
 
@@ -401,12 +420,18 @@ export default class HighlightrPlugin extends Plugin {
                     if (this.isUpdatingEditorContent) return;
                     if (Date.now() < this.suppressFullProcessingUntil) return;
                     this.processMarkTags();
-                    this.triggerNotesTabUpdate();
+                    this.triggerNotesTabUpdate(this.getFocusedMarkdownFilePath() ?? undefined);
                 }, 120))
             );
 
             this.registerEvent(
-                this.app.workspace.on("file-open", () => {
+                this.app.workspace.on("file-open", async (file) => {
+                    const activeMarkdownFilePath = file?.extension === "md"
+                        ? file.path
+                        : null;
+                    if (activeMarkdownFilePath) {
+                        this.activeMarkdownFilePath = activeMarkdownFilePath;
+                    }
                     const runPostOpenPass = () => {
                         this.processMarkTags();
                         this.attachEventListeners();
@@ -416,10 +441,15 @@ export default class HighlightrPlugin extends Plugin {
                     window.setTimeout(runPostOpenPass, 80);
                     window.setTimeout(runPostOpenPass, 240);
                     void this.refreshPreviewAfterFileOpen();
-                    if (this.fileHasHighlights()) {
-                        void this.openNotesTab();
+                    if (activeMarkdownFilePath && await this.fileHasHighlights(activeMarkdownFilePath)) {
+                        void this.openNotesTab(this.settings.focusHighlightsAndNotes);
                     }
-                    this.triggerNotesTabUpdate();
+                    this.triggerNotesTabUpdate(activeMarkdownFilePath ?? undefined);
+                    if (activeMarkdownFilePath) {
+                        window.setTimeout(() => {
+                            this.triggerNotesTabUpdate(activeMarkdownFilePath);
+                        }, 100);
+                    }
                 })
             );
 
@@ -915,7 +945,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
             this.isUpdatingEditorContent = false;
         }
 
-        this.triggerNotesTabUpdate();
+        this.triggerNotesTabUpdate(this.getFocusedMarkdownFilePath() ?? undefined);
     }
 
     private async refreshPreviewAfterFileOpen(): Promise<void> {
@@ -1004,7 +1034,7 @@ const colorValue = this.settings.highlighters[highlighterKey];
         }
     }
 
-    private async openNotesTab(): Promise<void> {
+    private async openNotesTab(focus: boolean = true): Promise<void> {
         try {
             const run = async () => {
                 const existingLeaves = this.app.workspace.getLeavesOfType(NOTES_VIEW_TYPE);
@@ -1023,16 +1053,18 @@ const colorValue = this.settings.highlighters[highlighterKey];
                 }
 
                 if (leaf) {
-                    this.app.workspace.revealLeaf(leaf);
-                    const workspace = this.app.workspace as {
-                        rightSplit?: {
-                            collapsed?: boolean;
-                            expand?: () => void;
+                    if (focus) {
+                        this.app.workspace.revealLeaf(leaf);
+                        const workspace = this.app.workspace as {
+                            rightSplit?: {
+                                collapsed?: boolean;
+                                expand?: () => void;
+                            };
                         };
-                    };
-                    const rightSplit = workspace.rightSplit;
-                    if (rightSplit?.collapsed && typeof rightSplit.expand === "function") {
-                        rightSplit.expand();
+                        const rightSplit = workspace.rightSplit;
+                        if (rightSplit?.collapsed && typeof rightSplit.expand === "function") {
+                            rightSplit.expand();
+                        }
                     }
                 }
             };
@@ -1050,20 +1082,35 @@ const colorValue = this.settings.highlighters[highlighterKey];
         }
     }
 
-    private fileHasHighlights(): boolean {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        const content = view?.editor?.getValue();
-        if (!content) return false;
-        return /<mark\b/i.test(content);
+    private async fileHasHighlights(filePath?: string): Promise<boolean> {
+        const targetFilePath = filePath ?? this.getFocusedMarkdownFilePath();
+        if (!targetFilePath) return false;
+
+        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
+        for (const leaf of markdownLeaves) {
+            const view = leaf.view;
+            if (view instanceof MarkdownView && view.file?.path === targetFilePath) {
+                const content = view.editor?.getValue();
+                return content ? /<mark\b/i.test(content) : false;
+            }
+        }
+
+        const file = this.app.vault.getAbstractFileByPath(targetFilePath);
+        if (file instanceof TFile) {
+            const content = await this.app.vault.read(file);
+            return /<mark\b/i.test(content);
+        }
+
+        return false;
     }
 
-    private triggerNotesTabUpdate(): void {
+    private triggerNotesTabUpdate(filePath?: string): void {
         try {
             const notesLeaves = this.app.workspace.getLeavesOfType(NOTES_VIEW_TYPE);
             notesLeaves.forEach(leaf => {
                 const view = leaf.view;
                 if (view instanceof NotesTab) {
-                    view.forceUpdate();
+                    view.forceUpdate(filePath);
                 }
             });
         } catch (error) {

@@ -425,11 +425,13 @@ export class HighlightrSettingTab extends PluginSettingTab {
     colorHex: string,
     className: string,
   ): Promise<void> {
+    const trimmedColorHex = colorHex.trim();
+    const normalizedColorHex = (trimmedColorHex.startsWith("#") ? trimmedColorHex : `#${trimmedColorHex}`).toUpperCase();
     const existingIndex = this.plugin.settings.highlighterOrder.indexOf(colorName);
     if (existingIndex === -1) {
       this.plugin.settings.highlighterOrder.push(colorName);
     }
-    this.plugin.settings.highlighters[colorName] = colorHex;
+    this.plugin.settings.highlighters[colorName] = normalizedColorHex;
     this.plugin.settings.highlighterClasses[colorName] = className;
     this.plugin.settings.highlighterActivity[colorName] = true;
     window.setTimeout(() => {
@@ -592,6 +594,19 @@ export class HighlightrSettingTab extends PluginSettingTab {
     };
 
     stylesSetting.infoEl.appendChild(styleDemo());
+
+    new Setting(containerEl)
+      .setName("Focus Highlights & Notes")
+      .setDesc("Automatically open and focus the Highlights & Notes tab when a file with highlights is opened.")
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.focusHighlightsAndNotes)
+          .onChange((focusHighlightsAndNotes) => {
+            this.plugin.settings.focusHighlightsAndNotes = focusHighlightsAndNotes;
+            void this.plugin.saveSettings();
+            void this.plugin.saveData(this.plugin.settings);
+          });
+      });
 
     const vaultScanSetting = new Setting(containerEl)
       .setName("Vault scan scope for conflict checks")

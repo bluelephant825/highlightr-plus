@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, TFile, setIcon } from "obsidian";
 import HighlightrPlugin from "../plugin/main";
 import { EnhancedApp } from "../settings/types";
 
@@ -7,6 +7,7 @@ export const NOTES_VIEW_TYPE = "highlightr-notes-view";
 export class NotesTab extends ItemView {
     plugin: HighlightrPlugin;
     private updateRequestId = 0;
+    private activeFilePath: string | null = null;
 
     public title = 'Highlights & Notes';
 
@@ -52,92 +53,112 @@ export class NotesTab extends ItemView {
         return null;
     }
 
-    private async updateNotesList(container: HTMLDivElement): Promise<void> {
+    private async updateNotesList(container: HTMLDivElement, filePath?: string): Promise<void> {
         const requestId = ++this.updateRequestId;
         try {
             console.log("Starting updateNotesList");
             container.empty();
 
-            const activeMarkdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-            const activeFilePath = activeMarkdownView?.file?.path;
+            if (filePath) {
+                this.activeFilePath = filePath;
+            } else {
+                const focusedMarkdownFilePath = this.plugin.getFocusedMarkdownFilePath();
+                if (focusedMarkdownFilePath) {
+                    this.activeFilePath = focusedMarkdownFilePath;
+                }
+            }
+            const activeFilePath = this.activeFilePath;
 
-            // Get all markdown leaves
             const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
             console.log("Markdown leaves found:", markdownLeaves.length);
 
-            if (markdownLeaves.length === 0) {
+            if (!activeFilePath) {
                 container.createEl('div', {
                     cls: 'highlightr-message',
-                    text: 'No markdown files open'
+                    text: 'No markdown file in focus'
                 });
                 return;
             }
 
             const allHighlights: Array<{ text: string; note: string | null; color: string | null; tags: string[]; filePath: string; cssClass: string | null }> = [];
-            const processedFilePaths = new Set<string>();
+            let content: string | null = null;
 
-            // Process each markdown leaf
             for (const leaf of markdownLeaves) {
                 if (requestId !== this.updateRequestId) {
                     return;
                 }
                 const view = leaf.view;
-                if (view instanceof MarkdownView && view.file && !processedFilePaths.has(view.file.path)) {
-                    processedFilePaths.add(view.file.path);
+                if (view instanceof MarkdownView && view.file?.path === activeFilePath) {
                     console.log("Processing file:", view.file.path);
-                    const content = view.editor?.getValue() ?? await this.app.vault.read(view.file);
+                    content = view.editor?.getValue() ?? await this.app.vault.read(view.file);
                     console.log("File content loaded:", content.length);
+                    break;
+                }
+            }
 
-                    // Updated regex patterns
-                    const noteRegex = /data-note="([^"]*)"/;
-                    const tagsRegex = /data-tags="([^"]*)"/;
-                    const colorRegex = /(?:background(?:-color)?|--hltr-color):\s*((?:rgba?\([^)]+\)|#[A-Fa-f0-9]+))/i;
-                    const classRegex = /\bclass="([^"]*)"/i;
-                    const highlightRegex = /<mark[^>]*>(.*?)<\/mark>/g;
+            if (content === null) {
+                const file = this.app.vault.getAbstractFileByPath(activeFilePath);
+                if (file instanceof TFile) {
+                    console.log("Processing file from vault:", file.path);
+                    content = await this.app.vault.read(file);
+                    console.log("File content loaded:", content.length);
+                }
+            }
 
-                    let match;
-                    while ((match = highlightRegex.exec(content)) !== null) {
-                        const fullMatch = match[0];
-                        const text = match[1];
-                        console.log("Processing mark:", fullMatch);
+            if (requestId !== this.updateRequestId) {
+                return;
+            }
 
-                        // Extract note
-                        const noteMatch = fullMatch.match(noteRegex);
-                        const note = noteMatch ? noteMatch[1] : null;
-                        console.log("Found note:", note);
+            if (content !== null) {
+                // Updated regex patterns
+                const noteRegex = /data-note="([^"]*)"/;
+                const tagsRegex = /data-tags="([^"]*)"/;
+                const colorRegex = /(?:background(?:-color)?|--hltr-color):\s*((?:rgba?\([^)]+\)|#[A-Fa-f0-9]+))/i;
+                const classRegex = /\bclass="([^"]*)"/i;
+                const highlightRegex = /<mark[^>]*>(.*?)<\/mark>/g;
 
-                        // Extract tags with improved handling
-                        const tagsMatch = fullMatch.match(tagsRegex);
-                        const tags = Array.isArray(tagsMatch) && typeof tagsMatch[1] === 'string'
-                            ? tagsMatch[1].split(',')
-                                .map(tag => tag.trim())
-                                .filter(tag => tag.length > 0)
-                                .map(tag => `#${tag.replace(/\s+/g, '-')}`)
-                            : [];
-                        console.log("Found tags:", tags);
+                let match;
+                while ((match = highlightRegex.exec(content)) !== null) {
+                    const fullMatch = match[0];
+                    const text = match[1];
+                    console.log("Processing mark:", fullMatch);
 
-                        // Extract color
-                        const colorMatch = fullMatch.match(colorRegex);
-                        const color = colorMatch ? colorMatch[1] : null;
-                        console.log("Found color:", color);
+                    // Extract note
+                    const noteMatch = fullMatch.match(noteRegex);
+                    const note = noteMatch ? noteMatch[1] : null;
+                    console.log("Found note:", note);
 
-                        const classMatch = fullMatch.match(classRegex);
-                        const classTokens = classMatch?.[1]
-                            ?.split(/\s+/)
-                            .map((token) => token.trim())
-                            .filter((token) => token.length > 0) ?? [];
-                        const cssClass = classTokens.find((token) => token.startsWith("hltr-")) ?? null;
-                        console.log("Found css class:", cssClass);
+                    // Extract tags with improved handling
+                    const tagsMatch = fullMatch.match(tagsRegex);
+                    const tags = Array.isArray(tagsMatch) && typeof tagsMatch[1] === 'string'
+                        ? tagsMatch[1].split(',')
+                            .map(tag => tag.trim())
+                            .filter(tag => tag.length > 0)
+                            .map(tag => `#${tag.replace(/\s+/g, '-')}`)
+                        : [];
+                    console.log("Found tags:", tags);
 
-                        allHighlights.push({
-                            text,
-                            note,
-                            color,
-                            tags,
-                            filePath: view.file.path,
-                            cssClass
-                        });
-                    }
+                    // Extract color
+                    const colorMatch = fullMatch.match(colorRegex);
+                    const color = colorMatch ? colorMatch[1] : null;
+                    console.log("Found color:", color);
+
+                    const classMatch = fullMatch.match(classRegex);
+                    const classTokens = classMatch?.[1]
+                        ?.split(/\s+/)
+                        .map((token) => token.trim())
+                        .filter((token) => token.length > 0) ?? [];
+                    const cssClass = classTokens.find((token) => token.startsWith("hltr-")) ?? null;
+                    console.log("Found css class:", cssClass);
+
+                    allHighlights.push({
+                        text,
+                        note,
+                        color,
+                        tags,
+                        filePath: activeFilePath,
+                        cssClass
+                    });
                 }
             }
 
@@ -388,17 +409,17 @@ export class NotesTab extends ItemView {
     }
 
     // Enhanced force update method
-    public forceUpdate(): void {
+    public forceUpdate(filePath?: string): void {
         try {
             const container = this.contentEl.querySelector<HTMLDivElement>('.highlightr-notes-container');
             if (container && container.instanceOf(HTMLDivElement)) {
-                void this.updateNotesList(container);
+                void this.updateNotesList(container, filePath);
             } else {
                 // If container doesn't exist, create it inside the view content
                 const newContainer = this.contentEl.createDiv({
                     cls: "highlightr-notes-container"
                 });
-                void this.updateNotesList(newContainer);
+                void this.updateNotesList(newContainer, filePath);
             }
         } catch (error) {
             console.error("Error in forceUpdate:", error);
@@ -421,8 +442,10 @@ export class NotesTab extends ItemView {
 
             // Register for workspace events
             this.registerEvent(
-                this.app.workspace.on("file-open", () => {
-                    void this.updateNotesList(container);
+                this.app.workspace.on("file-open", (file: TFile | null) => {
+                    if (file?.extension === "md") {
+                        void this.updateNotesList(container, file.path);
+                    }
                 })
             );
 
